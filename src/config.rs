@@ -21,6 +21,20 @@ struct FileConfig {
     pub max_message_length: usize,
     pub max_players_per_server: usize,
     pub seq_endpoint: Option<String>,
+    pub scheduler: SchedulerConfig,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SchedulerConfig {
+    pub enabled: bool,
+    pub heartbeat_interval_minutes: u64,
+    pub auto_reload_start_hour: u8,
+    pub auto_reload_end_hour: u8,
+    pub auto_reload_interval_minutes: u64,
+    pub weekly_leaderboard_day: Option<u8>,
+    pub weekly_leaderboard_hour: Option<u8>,
+    pub monthly_leaderboard_day: Option<u8>,
+    pub monthly_leaderboard_hour: Option<u8>,
 }
 
 #[derive(Clone)]
@@ -38,6 +52,7 @@ pub struct AppConfig {
     pub max_players_per_server: usize,
     pub clear_commands_on_startup: bool,
     pub seq_endpoint: Option<String>,
+    pub scheduler: SchedulerConfig,
 }
 
 pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Sync>> {
@@ -109,6 +124,7 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
         max_players_per_server: cfg.max_players_per_server,
         clear_commands_on_startup: cfg.clear_commands_on_startup,
         seq_endpoint: cfg.seq_endpoint,
+        scheduler: cfg.scheduler,
     })
 }
 
