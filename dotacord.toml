@@ -1,0 +1,23 @@
+database_path = "D:/dev/rust/dotacord/data/dotacord.db"
+heroes_path = "D:/dev/rust/dotacord/data/heroes.json"
+api_key_var = "KEY_DOTACORD"
+
+# Log level: trace, debug, info, warn, error
+log_level = "info"
+
+log_path = "D:/dev/rust/dotacord/data/dotacord.log"
+log_json_path = "D:/dev/rust/dotacord/data/dotacord.json.log"
+seq_endpoint = "http://localhost:5341/api/events/raw"
+
+# Example: register application commands to a single guild for faster testing
+# test_guild = 927307976497315930
+# test_guild = 927307976497315930
+test_channel = 927307976497315930
+
+online_status = "online"
+# online_status = "invisible"
+
+max_message_length = 1900
+
+max_players_per_server = 5
+clear_commands_on_startup = false
