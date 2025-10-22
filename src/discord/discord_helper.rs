@@ -1,25 +1,12 @@
 use poise::serenity_prelude::{
-    Channel, CreateAttachment, CreateEmbed, CreateMessage, EditMessage, GuildRef, Http,
+    Channel, CreateMessage, Http,
     MessageFlags,
 };
 use poise::{CreateReply, ReplyHandle};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
-use crate::data::servers_db;
+use crate::database::servers_db;
 use crate::{Context, Error};
-
-pub(crate) async fn clear_embeds(ctx: &Context<'_>, reply: ReplyHandle<'_>) -> Result<(), Error> {
-    let mut reply_msg = reply.into_message().await?;
-    info!("Clearing embeds from message ID {}", reply_msg.id);
-    let content = reply_msg.content.clone();
-    reply_msg
-        .edit(
-            ctx.http(),
-            EditMessage::new().content(&content).suppress_embeds(true),
-        )
-        .await?;
-    Ok(())
-}
 
 const GUILD_LOOKUP_ERROR: &str = "Could not get guild";
 
@@ -101,7 +88,7 @@ pub(crate) async fn private_reply<'a>(
     ctx: &'a Context<'a>,
     content: String,
 ) -> Result<ReplyHandle<'a>, Error> {
-    info!(content = content, "Sending reply to user");
+    debug!(content = content, "Sending reply to user");
     Ok(ctx
         .send(
             CreateReply::new()

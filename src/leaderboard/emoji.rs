@@ -7,9 +7,6 @@ impl Emoji {
     pub const HERALD: &'static str = "<:dota_herald:1424830523083325571>";
     pub const UNCALIBRATED: &'static str = "<:dota_uncalibrated:1424854032446652496>";
     pub const DIZZY: &'static str = "<a:dota_dizzy:1424176772622061588>";
-    pub const SILVER: &'static str = "🥈";
-    pub const BRONZE: &'static str = "🥉";
-    pub const BULLET: &'static str = "▫️";
     pub const SICK: &'static str = "<a:dota_sick:1388916558553677824>";
     pub const AEGIS2015: &'static str = "<a:dota_aegis2015:1388977461722615878>";
     pub const DEVIL: &'static str = "<a:dota_devil:1388977470463545566>";

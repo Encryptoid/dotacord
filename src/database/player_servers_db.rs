@@ -13,7 +13,6 @@ pub(crate) struct PlayerServer {
 }
 
 impl PlayerServer {
-    /// Returns the display name for this player, preferring player_name if set, otherwise discord_name
     pub fn display_name(&self) -> &str {
         self.player_name.as_deref().unwrap_or(&self.discord_name)
     }
@@ -151,7 +150,9 @@ pub async fn remove_server_player_by_user_id(
     if removed {
         info!(
             RowsAffected = result.rows_affected(),
-            "Removed PlayerServer for ServerId: {}, UserId: {}", server_id, user_id
+            "Removed PlayerServer for ServerId: {}, UserId: {}",
+            server_id,
+            user_id
         );
     } else {
         info!(

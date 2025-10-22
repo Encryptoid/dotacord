@@ -2,9 +2,10 @@ use poise::serenity_prelude::User;
 use tracing::{info, warn};
 
 use super::discord_helper;
-use crate::data::player_servers_db::PlayerServer;
-use crate::data::{database_access, player_servers_db, players_db, servers_db};
-use crate::markdown::stats_formatter::{Column, TableBuilder};
+use crate::api::open_dota_links;
+use crate::database::player_servers_db::PlayerServer;
+use crate::database::{database_access, player_servers_db, players_db, servers_db};
+use crate::markdown::{Link, TableBuilder, Text};
 use crate::{Context, Error};
 
 // default_member_permissions = Permissions::ADMINISTRATOR;
@@ -226,20 +227,34 @@ pub fn format_list_players(players: &Vec<PlayerServer>) -> String {
     let mut sorted_players: Vec<&PlayerServer> = players.iter().collect();
     sorted_players.sort_by(|a, b| a.display_name().cmp(&b.display_name()));
 
+    let discord_users: Vec<String> = sorted_players
+        .iter()
+        .map(|s| format!("@{}", s.discord_name))
+        .collect();
+    let nicknames: Vec<String> = sorted_players
+        .iter()
+        .map(|s| s.player_name.clone().unwrap_or("-".to_string()))
+        .collect();
+    let player_ids: Vec<String> = sorted_players
+        .iter()
+        .map(|s| s.player_id.to_string())
+        .collect();
+    let links: Vec<String> = sorted_players
+        .iter()
+        .map(|s| open_dota_links::profile_url(s.player_id))
+        .collect();
+
     let section = TableBuilder::new(title.clone())
-        .add_column(Column::new("Discord User", move |s: &PlayerServer| {
-            format!("@{}", s.discord_name.clone())
-        }))
-        .add_column(Column::new("Nickname", |s: &PlayerServer| {
-            s.player_name.clone().unwrap_or("-".to_string())
-        }))
-        .add_column(Column::new("Player ID", |s: &PlayerServer| {
-            s.player_id.to_string()
-        }))
-        .build(sorted_players);
+        .add_column(Text::new("Discord User", discord_users))
+        .add_column(Text::new("Nickname", nicknames))
+        .add_column(Text::new("Player ID", player_ids))
+        .add_column(Link::new(links))
+        .build();
 
     let mut lines: Vec<String> = Vec::new();
     lines.push(section.title);
     lines.extend(section.lines);
     lines.join("\n")
 }
+
+

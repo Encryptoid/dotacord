@@ -2,15 +2,15 @@ use chrono::Utc;
 use poise::CreateReply;
 use tracing::info;
 
-use crate::data::{database_access, player_servers_db};
+use crate::database::{database_access, player_servers_db};
 use crate::discord::discord_helper;
 use crate::leaderboard::duration::Duration;
 use crate::leaderboard::leaderboard_stats;
 use crate::util::dates;
 use crate::{Context, Error};
 
-#[poise::command(slash_command)]
-pub async fn dev_leaderboard(
+#[poise::command(slash_command, prefix_command, rename = "dev_leaderboard")]
+pub async fn leaderboard(
     ctx: Context<'_>,
     #[description = "The duration for the leaderboard"] duration: Duration,
 ) -> Result<(), Error> {

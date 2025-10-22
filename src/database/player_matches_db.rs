@@ -1,9 +1,9 @@
 use sqlx::{FromRow, SqliteConnection};
 use tracing::debug;
 
-use crate::data::hero_cache;
-use crate::data::open_dota_api::ApiPlayerMatch;
-use crate::data::types::{Faction, GameMode, LobbyType, MapperError};
+use crate::api::open_dota_api::ApiPlayerMatch;
+use crate::database::hero_cache;
+use crate::database::types::{Faction, GameMode, LobbyType, MapperError};
 use crate::Error;
 
 #[derive(Debug, Clone, FromRow)]

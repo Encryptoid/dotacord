@@ -1,15 +1,17 @@
+mod api;
 mod config;
-mod data;
+mod database;
 mod discord;
 mod leaderboard;
-mod logging;
 mod markdown;
+mod logging;
+mod scheduler;
 mod util;
 use ::serenity::all::Token;
 use poise::serenity_prelude::{self as serenity};
 use tracing::info;
 
-use crate::data::{database_access, hero_cache};
+use crate::database::{database_access, hero_cache};
 
 struct Data {
     config: config::AppConfig,
@@ -32,55 +34,34 @@ async fn main() -> Result<(), Error> {
     //     clear_commands_from_server(&cfg).await?;
     // }
 
-    // let options = poise::FrameworkOptions {
-    //     commands: discord::commands().await,
-    //     ..Default::default()
-    // };
+    let cfg_for_scheduler = cfg.clone();
+    let commands = discord::commands().await;
+    
+    let token = Token::from_env(&cfg.discord_api_key)?;
+    let http = serenity::http::Http::new(token.clone());
+    http.set_application_id(http.get_current_application_info().await?.id);
+    
+    info!("Registering application commands");
+    if let Some(guild_id) = cfg.test_guild {
+        let guild = serenity::GuildId::new(guild_id);
+        poise::builtins::register_in_guild(&http, &commands, guild).await?;
+    } else {
+        poise::builtins::register_globally(&http, &commands).await?;
+    }
 
-    let cfg_for_setup = cfg.clone();
     let framework = poise::Framework::new(poise::FrameworkOptions {
-        commands: discord::commands().await,
+        commands,
         ..Default::default()
     });
-    // .options(poise::FrameworkOptions {
-    //     commands: discord::commands().await,
-    //     // reply_callback: Some(|_ctx, mut builder| {
-    //     //     // builder.embeds.clear();
-    //     //     // builder.attachments.clear();
-    //     //     // builder.components = None;
-    //     //     // builder.allowed_mentions = None;
-    //     //     builder
-    //     // }),
-    //     ..Default::default()
-    // })
-    // (move |ctx, _ready, framework| {
-    //     let config_clone = cfg_for_setup.clone();
-    //     Box::pin(async move {
-    //         info!(
-    //             "Setting up Discord client with online status: {:?}",
-    //             cfg_for_setup.online_status
-    //         );
-    //         ctx.set_presence(None, cfg_for_setup.online_status);
-    //         if let Some(guild_id) = cfg_for_setup.test_guild {
-    //             let guild = serenity::GuildId::new(guild_id as u64);
-    //             poise::builtins::register_in_guild(ctx, &framework.options().commands, guild)
-    //                 .await?;
-    //         } else {
-    //             poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-    //         }
-    //         Ok(Data {
-    //             config: config_clone,
-    //         })
-    //     })
-    // })
-    // .build();
 
-    let mut client = serenity::ClientBuilder::new(
-        Token::from_env(cfg.discord_api_key)?,
-        serenity::GatewayIntents::non_privileged(),
-    ).data(cfg_for_setup)
-    .framework(framework)
-    .await?;
+    let cfg_arc = std::sync::Arc::new(Data { config: cfg });
+    let mut client = serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
+        .data(cfg_arc)
+        .framework(framework)
+        .await?;
+
+    let http_for_scheduler = client.http.clone();
+    scheduler::spawn_scheduler(cfg_for_scheduler, http_for_scheduler);
 
     info!("Setup complete. Starting client listener");
 

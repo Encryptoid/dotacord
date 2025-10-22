@@ -21,3 +21,14 @@ max_message_length = 1900
 
 max_players_per_server = 5
 clear_commands_on_startup = false
+
+[scheduler]
+enabled = true
+heartbeat_interval_minutes = 10
+auto_reload_start_hour = 16
+auto_reload_end_hour = 3
+auto_reload_interval_minutes = 60
+weekly_leaderboard_day = 7
+weekly_leaderboard_hour = 21
+monthly_leaderboard_day = 1
+monthly_leaderboard_hour = 18

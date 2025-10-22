@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::data::{database_access, hero_cache};
+use crate::database::{database_access, hero_cache};
 use crate::discord::discord_helper;
 use crate::{Context, Error};
 

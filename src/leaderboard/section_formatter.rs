@@ -1,21 +1,9 @@
 use super::stats_calculator::PlayerStats;
-use crate::data::hero_cache;
-use crate::data::player_servers_db::PlayerServer;
-use crate::markdown::stats_formatter::HasPlayerId;
-use crate::markdown::stats_formatter::{fmt_match_url, Column, LeaderboardSection, TableBuilder};
+use crate::api::open_dota_links;
+use crate::database::hero_cache;
+use crate::leaderboard::stats_formatter::LeaderboardSection;
 use crate::util::dates::format_section_timestamp;
-
-impl HasPlayerId for PlayerStats {
-    fn player_id(&self) -> i64 {
-        self.player_id
-    }
-}
-
-impl HasPlayerId for PlayerServer {
-    fn player_id(&self) -> i64 {
-        self.player_id
-    }
-}
+use crate::markdown::{Link, TableBuilder, Text};
 
 pub fn build_winrate_section(
     duration_label: &str,
@@ -25,6 +13,7 @@ pub fn build_winrate_section(
     right_emoji: &str,
     title_text: &str,
     win_rate_label: &str,
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     let mut sorted_stats: Vec<_> = all_stats.iter().filter(|s| selector(s).1 > 0).collect();
 
@@ -47,37 +36,66 @@ pub fn build_winrate_section(
         winner.player_name, win_rate, win_rate_label
     );
 
-    let section = TableBuilder::new(title)
-        .add_column(Column::new("Player", |s: &PlayerStats| {
-            s.player_name.clone()
-        }))
-        .add_column(Column::new("Win%", move |s: &PlayerStats| {
-            let (wins, total) = selector(s);
-            if total > 0 {
-                let win_rate = (wins as f64 / total as f64) * 100.0;
-                format!("{:>3.0}%", win_rate)
-            } else {
-                "-".to_string()
-            }
-        }))
-        .add_column(Column::new("Wins", move |s: &PlayerStats| {
-            let (wins, total) = selector(s);
-            if total > 0 {
-                wins.to_string()
-            } else {
-                "-".to_string()
-            }
-        }))
-        .add_column(Column::new("Total", move |s: &PlayerStats| {
-            let (_, total) = selector(s);
-            if total > 0 {
-                total.to_string()
-            } else {
-                "-".to_string()
-            }
-        }))
-        .build(sorted_stats);
-    Some(section)
+    let mut builder = TableBuilder::new(title);
+    if include_links {
+        let link_urls: Vec<String> = sorted_stats
+            .iter()
+            .map(|s| open_dota_links::profile_url(s.player_id))
+            .collect();
+        builder = builder.add_column(Link::new(link_urls));
+    }
+    Some(builder
+        .add_column(Text::new(
+            "Player",
+            sorted_stats
+                .iter()
+                .map(|s| s.player_name.clone())
+                .collect(),
+        ))
+        .add_column(Text::new(
+            "Win%",
+            sorted_stats
+                .iter()
+                .map(|s| {
+                    let (wins, total) = selector(s);
+                    if total > 0 {
+                        let win_rate = (wins as f64 / total as f64) * 100.0;
+                        format!("{:>3.0}%", win_rate)
+                    } else {
+                        "-".to_string()
+                    }
+                })
+                .collect(),
+        ))
+        .add_column(Text::new(
+            "Wins",
+            sorted_stats
+                .iter()
+                .map(|s| {
+                    let (wins, total) = selector(s);
+                    if total > 0 {
+                        wins.to_string()
+                    } else {
+                        "-".to_string()
+                    }
+                })
+                .collect(),
+        ))
+        .add_column(Text::new(
+            "Total",
+            sorted_stats
+                .iter()
+                .map(|s| {
+                    let (_, total) = selector(s);
+                    if total > 0 {
+                        total.to_string()
+                    } else {
+                        total.to_string()
+                    }
+                })
+                .collect(),
+        ))
+        .build())
 }
 
 pub fn build_hero_spam_section(
@@ -86,8 +104,8 @@ pub fn build_hero_spam_section(
     left_emoji: &str,
     right_emoji: &str,
     label: &str,
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
-    // Filter and sort once
     let mut sorted_stats: Vec<_> = all_stats
         .iter()
         .filter(|s| s.hero_pick_stat.matches > 0)
@@ -112,28 +130,63 @@ pub fn build_hero_spam_section(
         winner.player_name, pick_rate, "Hero Pick Rate", hero_name
     );
 
-    let section = TableBuilder::new(title)
-        .add_column(Column::new("Player", |s: &PlayerStats| {
-            s.player_name.clone()
-        }))
-        .add_column(Column::new("Hero", |s: &PlayerStats| {
-            hero_cache::get_hero_by_id(s.hero_pick_stat.hero_id)
-                .unwrap_or("Unknown Hero")
-                .to_string()
-        }))
-        .add_column(Column::new("Count", |s: &PlayerStats| {
-            s.hero_pick_stat.matches.to_string()
-        }))
-        .add_column(Column::new("Matches", |s: &PlayerStats| {
-            s.overall_stats.total_matches.to_string()
-        }))
-        .add_column(Column::new("Pick%", |s: &PlayerStats| {
-            let percentage =
-                (s.hero_pick_stat.matches as f32 / s.overall_stats.total_matches as f32) * 100.0;
-            format!("{:>3.0}%", percentage)
-        }))
-        .build(sorted_stats);
-    Some(section)
+    let mut builder = TableBuilder::new(title);
+    if include_links {
+        let link_urls: Vec<String> = sorted_stats
+            .iter()
+            .map(|s| open_dota_links::profile_url(s.player_id))
+            .collect();
+        builder = builder.add_column(Link::new(link_urls));
+    }
+    Some(builder
+        .add_column(Text::new(
+            "Player",
+            sorted_stats
+                .iter()
+                .map(|s| s.player_name.clone())
+                .collect(),
+        ))
+        .add_column(
+            Text::new(
+                "Hero",
+                sorted_stats
+                    .iter()
+                    .map(|s| {
+                        hero_cache::get_hero_by_id(s.hero_pick_stat.hero_id)
+                            .unwrap_or("Unknown Hero")
+                            .to_string()
+                    })
+                    .collect(),
+            )
+        )
+        .add_column(Text::new(
+            "Count",
+            sorted_stats
+                .iter()
+                .map(|s| s.hero_pick_stat.matches.to_string())
+                .collect(),
+        ))
+        .add_column(Text::new(
+            "Matches",
+            sorted_stats
+                .iter()
+                .map(|s| s.overall_stats.total_matches.to_string())
+                .collect(),
+        ))
+        .add_column(Text::new(
+            "Pick%",
+            sorted_stats
+                .iter()
+                .map(|s| {
+                    let percentage =
+                        (s.hero_pick_stat.matches as f32
+                            / s.overall_stats.total_matches as f32)
+                            * 100.0;
+                    format!("{:>3.0}%", percentage)
+                })
+                .collect(),
+        ))
+        .build())
 }
 
 pub fn build_single_match_stat_section(
@@ -144,6 +197,7 @@ pub fn build_single_match_stat_section(
     right_emoji: &str,
     label: &str,
     stat_name: &str,
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     // Filter and sort once
     let mut sorted_stats: Vec<_> = all_stats.iter().filter(|s| selector(s).value > 0).collect();
@@ -163,38 +217,66 @@ pub fn build_single_match_stat_section(
         winner.player_name, winner_stat.value, stat_name, hero_name
     );
 
-    let section = TableBuilder::new(title)
-        .add_column(
-            Column::new("Player", |s: &PlayerStats| s.player_name.clone())
-                .with_match_id_fn(move |s: &PlayerStats| Some(selector(s).match_id)),
-        )
-        .add_column(Column::new(stat_name, move |s: &PlayerStats| {
-            selector(s).value.to_string()
-        }))
-        .add_column(Column::new("Hero", move |s: &PlayerStats| {
+    let player_column: Vec<String> = sorted_stats.iter().map(|s| s.player_name.clone()).collect();
+    let stat_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| selector(s).value.to_string())
+        .collect();
+    let hero_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| {
             hero_cache::get_hero_by_id(selector(s).hero_id)
                 .unwrap_or("Unknown Hero")
                 .to_string()
-        }))
-        .add_column(Column::new("Outcome", move |s: &PlayerStats| {
+        })
+        .collect();
+    let outcome_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| {
             if selector(s).is_victory {
                 "Win"
             } else {
                 "Loss"
             }
             .to_string()
-        }))
-        .add_column(Column::new("Average", move |s: &PlayerStats| {
-            format!("{:.2}", selector(s).average)
-        }))
-        .add_column(Column::new("Total", move |s: &PlayerStats| {
-            selector(s).total.to_string()
-        }))
-        .add_column(Column::new("Date", move |s: &PlayerStats| {
-            format_section_timestamp(selector(s).date)
-        }))
-        .with_link_fn(move |s| fmt_match_url("@", selector(s).match_id))
-        .build(sorted_stats);
+        })
+        .collect();
+    let average_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| format!("{:.2}", selector(s).average))
+        .collect();
+    let total_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| selector(s).total.to_string())
+        .collect();
+    let date_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| format_section_timestamp(selector(s).date))
+        .collect();
+    let link_urls: Vec<String> = if include_links {
+        sorted_stats
+            .iter()
+            .map(|s| open_dota_links::match_url(selector(s).match_id))
+            .collect()
+    } else {
+        sorted_stats
+            .iter()
+            .map(|s| open_dota_links::profile_url(s.player_id))
+            .collect()
+    };
+
+    let mut builder = TableBuilder::new(title);
+    if include_links {
+        builder = builder.add_column(Link::new(link_urls));
+    }
+    builder = builder.add_column(Text::new("Player", player_column))
+        .add_column(Text::new(stat_name, stat_column))
+        .add_column(Text::new("Hero", hero_column))
+        .add_column(Text::new("Outcome", outcome_column))
+        .add_column(Text::new("Average", average_column))
+        .add_column(Text::new("Total", total_column))
+        .add_column(Text::new("Date", date_column));
+    let section = builder.build();
     Some(section)
 }
 
@@ -215,6 +297,7 @@ pub fn build_longest_match_section(
     right_emoji: &str,
     label: &str,
     stat_name: &str,
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     // Filter and sort once
     let mut sorted_stats: Vec<_> = all_stats
@@ -238,37 +321,67 @@ pub fn build_longest_match_section(
         duration_label, left_emoji, label, right_emoji, player_name, stat_name, duration,
     );
 
-    let section = TableBuilder::new(title)
-        .add_column(
-            Column::new("Player", |s: &PlayerStats| s.player_name.clone())
-                .with_match_id_fn(|s: &PlayerStats| Some(s.longest_match_stat.match_id)),
-        )
-        .add_column(Column::new("Duration", |s: &PlayerStats| {
-            format_duration(s.longest_match_stat.value)
-        }))
-        .add_column(Column::new("Hero", |s: &PlayerStats| {
+    let player_column: Vec<String> = sorted_stats.iter().map(|s| s.player_name.clone()).collect();
+    let duration_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| format_duration(s.longest_match_stat.value))
+        .collect();
+    let hero_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| {
             hero_cache::get_hero_by_id(s.longest_match_stat.hero_id)
                 .unwrap_or("Unknown Hero")
                 .to_string()
-        }))
-        .add_column(Column::new("Outcome", |s: &PlayerStats| {
+        })
+        .collect();
+    let outcome_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| {
             if s.longest_match_stat.is_victory {
                 "Win"
             } else {
                 "Loss"
             }
             .to_string()
-        }))
-        .add_column(Column::new("Average", |s: &PlayerStats| {
-            format_duration(s.longest_match_stat.average as i32)
-        }))
-        .add_column(Column::new("Total", |s: &PlayerStats| {
-            format_duration(s.longest_match_stat.total)
-        }))
-        .add_column(Column::new("Date", |s: &PlayerStats| {
-            format_section_timestamp(s.longest_match_stat.date)
-        }))
-        .with_link_fn(|s| fmt_match_url("@", s.longest_match_stat.match_id))
-        .build(sorted_stats);
+        })
+        .collect();
+    let average_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| format_duration(s.longest_match_stat.average as i32))
+        .collect();
+    let total_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| format_duration(s.longest_match_stat.total))
+        .collect();
+    let date_column: Vec<String> = sorted_stats
+        .iter()
+        .map(|s| format_section_timestamp(s.longest_match_stat.date))
+        .collect();
+    let link_urls: Vec<String> = if include_links {
+        sorted_stats
+            .iter()
+            .map(|s| open_dota_links::match_url(s.longest_match_stat.match_id))
+            .collect()
+    } else {
+        sorted_stats
+            .iter()
+            .map(|s| open_dota_links::profile_url(s.player_id))
+            .collect()
+    };
+
+    let mut builder = TableBuilder::new(title);
+    if include_links {
+        builder = builder.add_column(Link::new(link_urls));
+    }
+    builder = builder.add_column(Text::new("Player", player_column))
+        .add_column(Text::new("Duration", duration_column))
+        .add_column(Text::new("Hero", hero_column))
+        .add_column(Text::new("Outcome", outcome_column))
+        .add_column(Text::new("Average", average_column))
+        .add_column(Text::new("Total", total_column))
+        .add_column(Text::new("Date", date_column));
+    let section = builder.build();
     Some(section)
 }
+
+

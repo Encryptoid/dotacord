@@ -1,12 +1,28 @@
-use crate::markdown::stats_formatter::LeaderboardSection;
+use crate::leaderboard::stats_formatter::LeaderboardSection;
 
 use super::emoji::Emoji;
 use super::section_formatter;
 use super::stats_calculator::PlayerStats;
 
-pub(crate) fn format_overall_win_rate_section(
+pub(crate) fn get_leaderboard_sections(
     duration_label: &str,
     all_stats: &[PlayerStats],
+) -> Vec<Option<LeaderboardSection>> {
+    vec![
+        format_overall_win_rate_section(duration_label, &all_stats, false),
+        format_ranked_win_rate_section(duration_label, &all_stats, false),
+        format_hero_spam_section(duration_label, &all_stats, false),
+        format_highest_kills_section(duration_label, &all_stats, true),
+        format_highest_assists_section(duration_label, &all_stats, true),
+        format_highest_deaths_section(duration_label, &all_stats, true),
+        format_longest_match_section(duration_label, &all_stats, true),
+    ]
+}
+
+fn format_overall_win_rate_section(
+    duration_label: &str,
+    all_stats: &[PlayerStats],
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_winrate_section(
         duration_label,
@@ -16,12 +32,14 @@ pub(crate) fn format_overall_win_rate_section(
         Emoji::WIZ_WOW,
         &format!("Gamer of the {duration_label}"),
         "Overall Win Rate",
+        include_links,
     )
 }
 
-pub(crate) fn format_ranked_win_rate_section(
+fn format_ranked_win_rate_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_winrate_section(
         duration_label,
@@ -31,12 +49,14 @@ pub(crate) fn format_ranked_win_rate_section(
         Emoji::IMMORTAL,
         "Ranked Overlord",
         "Ranked Win Rate",
+        include_links,
     )
 }
 
-pub(crate) fn format_hero_spam_section(
+fn format_hero_spam_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_hero_spam_section(
         duration_label,
@@ -44,12 +64,14 @@ pub(crate) fn format_hero_spam_section(
         Emoji::FROG,
         Emoji::SICK,
         "Filthiest Hero Spammer",
+        include_links,
     )
 }
 
-pub(crate) fn format_highest_kills_section(
+fn format_highest_kills_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_single_match_stat_section(
         duration_label,
@@ -59,12 +81,14 @@ pub(crate) fn format_highest_kills_section(
         Emoji::DOUBLEDAMAGE,
         "1v9 Miracle Child",
         "Kills",
+        include_links,
     )
 }
 
-pub(crate) fn format_highest_assists_section(
+fn format_highest_assists_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_single_match_stat_section(
         duration_label,
@@ -74,12 +98,14 @@ pub(crate) fn format_highest_assists_section(
         Emoji::WIZ_GLHF,
         "Support Award",
         "Assists",
+        include_links,
     )
 }
 
-pub(crate) fn format_highest_deaths_section(
+fn format_highest_deaths_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_single_match_stat_section(
         duration_label,
@@ -89,12 +115,14 @@ pub(crate) fn format_highest_deaths_section(
         Emoji::WIZ_HELP,
         "Head Chef",
         "Deaths",
+        include_links,
     )
 }
 
-pub(crate) fn format_longest_match_section(
+fn format_longest_match_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
+    include_links: bool,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_longest_match_section(
         duration_label,
@@ -103,5 +131,6 @@ pub(crate) fn format_longest_match_section(
         Emoji::IOSTRESS,
         "Most Traumatised",
         "Longest Match Duration",
+        include_links,
     )
 }

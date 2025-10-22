@@ -1,4 +1,4 @@
-use crate::data::player_matches_db::PlayerMatch;
+use crate::database::player_matches_db::PlayerMatch;
 use crate::Error;
 
 #[derive(Debug, Clone, Default)]

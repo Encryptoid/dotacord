@@ -17,10 +17,15 @@ CREATE TABLE IF NOT EXISTS players
 DROP TABLE IF EXISTS SERVERS;
 CREATE TABLE IF NOT EXISTS servers
 (
-    server_id   BIGINT PRIMARY KEY NOT NULL,
-    server_name TEXT               NOT NULL,
-    channel_id  BIGINT             NULL
+    server_id     BIGINT PRIMARY KEY NOT NULL,
+    server_name   TEXT               NOT NULL,
+    channel_id    BIGINT             NULL,
+    is_sub_week   INTEGER            NOT NULL DEFAULT 0,
+    is_sub_month  INTEGER            NOT NULL DEFAULT 0
 );
+
+alter table servers add column is_sub_week INTEGER NOT NULL DEFAULT 0;
+alter table servers add column is_sub_month INTEGER NOT NULL DEFAULT 0;
 
 ---
 --- PLAYER_SERVERS

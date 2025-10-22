@@ -2,10 +2,10 @@ use chrono::{DateTime, Utc};
 use sqlx::SqliteConnection;
 use tracing::info;
 
-use crate::data::{player_matches_db, player_servers_db};
+use crate::database::{player_matches_db, player_servers_db};
 use crate::leaderboard::stats_calculator::{self, PlayerStats};
+use crate::leaderboard::stats_formatter::LeaderboardSection;
 use crate::leaderboard::{leaderboard_stats, sections};
-use crate::markdown::stats_formatter::{self, LeaderboardSection};
 use crate::Error;
 
 pub async fn get_leaderboard_messages(
@@ -17,7 +17,7 @@ pub async fn get_leaderboard_messages(
 ) -> Result<Vec<String>, Error> {
     let all_stats =
         leaderboard_stats::get_player_stats(conn, players, &start_utc, &end_utc).await?;
-    let sections = get_leaderboard_sections(&duration_label, &all_stats);
+    let sections = sections::get_leaderboard_sections(&duration_label, &all_stats);
     Ok(sections
         .iter()
         .filter_map(|s| s.as_ref())
@@ -60,22 +60,7 @@ async fn get_player_stats(
     Ok(all_stats)
 }
 
-fn get_leaderboard_sections(
-    duration_label: &str,
-    all_stats: &[PlayerStats],
-) -> Vec<Option<LeaderboardSection>> {
-    vec![
-        sections::format_overall_win_rate_section(duration_label, &all_stats),
-        sections::format_ranked_win_rate_section(duration_label, &all_stats),
-        sections::format_hero_spam_section(duration_label, &all_stats),
-        sections::format_highest_kills_section(duration_label, &all_stats),
-        sections::format_highest_assists_section(duration_label, &all_stats),
-        sections::format_highest_deaths_section(duration_label, &all_stats),
-        sections::format_longest_match_section(duration_label, &all_stats),
-    ]
-}
-
-fn section_to_msg_content(section: &stats_formatter::LeaderboardSection) -> String {
+fn section_to_msg_content(section: &LeaderboardSection) -> String {
     let mut content = format!("### {}\n", section.title);
     for line in &section.lines {
         content.push_str(&format!("{}\n", line));
