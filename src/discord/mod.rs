@@ -3,6 +3,7 @@ use poise::serenity_prelude::Permissions;
 use crate::{Data, Error};
 
 mod discord_helper;
+mod flip_command;
 pub(crate) mod leaderboard_command;
 mod misc_commands;
 mod player_commands;
@@ -14,7 +15,11 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         reload_command::reload_matches(),
         player_commands::list_players(),
         misc_commands::random_hero(),
+        misc_commands::roll(),
         leaderboard_command::leaderboard(),
+        flip_command::flip(),
+        // ready_command::modal(),
+        // ready_command::component_modal(),
     ];
 
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![

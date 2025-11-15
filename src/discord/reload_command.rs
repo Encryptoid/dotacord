@@ -10,11 +10,12 @@ use crate::{Context, Error};
 pub async fn reload_matches(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = discord_helper::guild_id(&ctx)?;
     let mut conn = database_access::get_new_connection().await?;
+    let db = database_access::get_sea_orm_connection()?;
     if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
         return Ok(());
     }
 
-    let players = player_servers_db::query_server_players(&mut conn, Some(guild_id)).await?;
+    let players = player_servers_db::query_server_players(db, Some(guild_id)).await?;
     if players.is_empty() {
         ctx.say("No players found for this server").await?;
         return Ok(());

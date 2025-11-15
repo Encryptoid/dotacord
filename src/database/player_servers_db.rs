@@ -1,60 +1,24 @@
-use sqlx::{FromRow, SqliteConnection};
+use sea_orm::*;
 use tracing::info;
 
+use crate::database::entities::{player_server, PlayerServer};
 use crate::Error;
 
-#[derive(Debug, Clone, FromRow)]
-pub(crate) struct PlayerServer {
-    pub player_id: i64,
-    pub server_id: i64,
-    pub user_id: i64,
-    pub discord_name: String,
-    pub player_name: Option<String>,
-}
-
-impl PlayerServer {
-    pub fn display_name(&self) -> &str {
-        self.player_name.as_deref().unwrap_or(&self.discord_name)
-    }
-}
+pub use player_server::Model as PlayerServerModel;
 
 pub async fn query_server_players(
-    conn: &mut SqliteConnection,
+    db: &DatabaseConnection,
     server_id: Option<i64>,
-) -> Result<Vec<PlayerServer>, Error> {
+) -> Result<Vec<PlayerServerModel>, Error> {
     info!("Querying player servers from database");
-    let rows: Vec<PlayerServer> = match server_id {
-        None => {
-            sqlx::query_as(
-                r#"
-                    SELECT
-                        player_id,
-                        server_id,
-                        user_id,
-                        discord_name,
-                        player_name
-                    FROM player_servers
-                "#,
-            )
-            .fetch_all(conn)
-            .await?
-        }
-        Some(server_id) => {
-            sqlx::query_as(
-                r#"
-                    SELECT
-                        player_id,
-                        server_id,
-                        user_id,
-                        discord_name,
-                        player_name
-                    FROM player_servers
-                    WHERE server_id = ?
-                "#,
-            )
-            .bind(server_id)
-            .fetch_all(conn)
-            .await?
+    
+    let rows = match server_id {
+        None => PlayerServer::find().all(db).await?,
+        Some(id) => {
+            PlayerServer::find()
+                .filter(player_server::Column::ServerId.eq(id))
+                .all(db)
+                .await?
         }
     };
 
@@ -63,7 +27,7 @@ pub async fn query_server_players(
 }
 
 pub async fn remove_server_player_by_name(
-    conn: &mut SqliteConnection,
+    db: &DatabaseConnection,
     server_id: i64,
     player_name: &str,
 ) -> Result<bool, Error> {
@@ -72,22 +36,17 @@ pub async fn remove_server_player_by_name(
         server_id, player_name
     );
 
-    let result = sqlx::query(
-        r#"
-            DELETE FROM player_servers
-            WHERE server_id = ? AND LOWER(player_name) = LOWER(?)
-        "#,
-    )
-    .bind(server_id as i64)
-    .bind(player_name)
-    .execute(conn)
-    .await?;
+    let result = PlayerServer::delete_many()
+        .filter(player_server::Column::ServerId.eq(server_id))
+        .filter(player_server::Column::PlayerName.eq(player_name))
+        .exec(db)
+        .await?;
 
-    let removed = result.rows_affected() > 0;
+    let removed = result.rows_affected > 0;
 
     if removed {
         info!(
-            RowsAffected = result.rows_affected(),
+            RowsAffected = result.rows_affected,
             "Removed PlayerServer for ServerId: {}, PlayerName: {}", server_id, player_name
         );
     } else {
@@ -101,31 +60,23 @@ pub async fn remove_server_player_by_name(
 }
 
 pub async fn insert_player_server(
-    conn: &mut SqliteConnection,
+    db: &DatabaseConnection,
     server_id: i64,
     player_id: i64,
-    user_id: i64,
-    discord_name: &str,
-    player_name: Option<&str>,
+    player_name: &str,
 ) -> Result<(), Error> {
-    sqlx::query(
-        r#"
-            INSERT INTO player_servers (server_id, player_id, user_id, discord_name, player_name)
-            VALUES (?, ?, ?, ?, ?)
-        "#,
-    )
-    .bind(server_id as i64)
-    .bind(player_id as i64)
-    .bind(user_id as i64)
-    .bind(discord_name)
-    .bind(player_name)
-    .execute(conn)
-    .await?;
+    let new_player_server = player_server::ActiveModel {
+        server_id: Set(server_id),
+        player_id: Set(player_id),
+        player_name: Set(player_name.to_string()),
+    };
+
+    PlayerServer::insert(new_player_server).exec(db).await?;
     Ok(())
 }
 
 pub async fn remove_server_player_by_user_id(
-    conn: &mut SqliteConnection,
+    db: &DatabaseConnection,
     server_id: i64,
     user_id: i64,
 ) -> Result<bool, Error> {
@@ -134,25 +85,18 @@ pub async fn remove_server_player_by_user_id(
         server_id, user_id
     );
 
-    let result = sqlx::query(
-        r#"
-            DELETE FROM player_servers
-            WHERE server_id = ? AND user_id = ?
-        "#,
-    )
-    .bind(server_id as i64)
-    .bind(user_id as i64)
-    .execute(conn)
-    .await?;
+    let result = PlayerServer::delete_many()
+        .filter(player_server::Column::ServerId.eq(server_id))
+        .filter(player_server::Column::PlayerId.eq(user_id))
+        .exec(db)
+        .await?;
 
-    let removed = result.rows_affected() > 0;
+    let removed = result.rows_affected > 0;
 
     if removed {
         info!(
-            RowsAffected = result.rows_affected(),
-            "Removed PlayerServer for ServerId: {}, UserId: {}",
-            server_id,
-            user_id
+            RowsAffected = result.rows_affected,
+            "Removed PlayerServer for ServerId: {}, UserId: {}", server_id, user_id
         );
     } else {
         info!(
@@ -165,7 +109,7 @@ pub async fn remove_server_player_by_user_id(
 }
 
 pub async fn rename_server_player_by_user_id(
-    conn: &mut SqliteConnection,
+    db: &DatabaseConnection,
     server_id: i64,
     user_id: i64,
     new_name: &str,
@@ -175,35 +119,30 @@ pub async fn rename_server_player_by_user_id(
         server_id, user_id, new_name
     );
 
-    let result = sqlx::query(
-        r#"
-            UPDATE player_servers
-            SET player_name = ?
-            WHERE server_id = ? AND user_id = ?
-        "#,
-    )
-    .bind(new_name)
-    .bind(server_id as i64)
-    .bind(user_id as i64)
-    .execute(conn)
-    .await?;
+    let player_server = PlayerServer::find()
+        .filter(player_server::Column::ServerId.eq(server_id))
+        .filter(player_server::Column::PlayerId.eq(user_id))
+        .one(db)
+        .await?;
 
-    let renamed = result.rows_affected() > 0;
-
-    if renamed {
-        info!(
-            RowsAffected = result.rows_affected(),
-            "Renamed PlayerServer for ServerId: {}, UserId: {} to NewName: {}",
-            server_id,
-            user_id,
-            new_name
-        );
-    } else {
-        info!(
-            "No PlayerServer found for rename. ServerId: {}, UserId: {}",
-            server_id, user_id
-        );
+    match player_server {
+        Some(ps) => {
+            let mut ps_active: player_server::ActiveModel = ps.into();
+            ps_active.player_name = Set(new_name.to_string());
+            ps_active.update(db).await?;
+            
+            info!(
+                "Renamed PlayerServer for ServerId: {}, UserId: {} to NewName: {}",
+                server_id, user_id, new_name
+            );
+            Ok(true)
+        }
+        None => {
+            info!(
+                "No PlayerServer found for rename. ServerId: {}, UserId: {}",
+                server_id, user_id
+            );
+            Ok(false)
+        }
     }
-
-    Ok(renamed)
 }

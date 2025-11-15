@@ -1,5 +1,5 @@
+use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::Column;
-use crate::leaderboard::section::Section;
 
 pub struct TableBuilder {
     title: String,
@@ -35,8 +35,8 @@ impl TableBuilder {
         self
     }
 
-    pub(crate) fn build(self) -> Section {
-        let mut section = Section::new(&self.title);
+    pub(crate) fn build(self) -> LeaderboardSection {
+        let mut section = LeaderboardSection::new(&self.title);
 
         let row_count = self.row_count.unwrap_or(0);
         if row_count == 0 {
@@ -48,9 +48,13 @@ impl TableBuilder {
         section
     }
 
-    fn build_table_content(&self, section: &mut Section, row_count: usize) {
+    fn build_table_content(&self, section: &mut LeaderboardSection, row_count: usize) {
         // Calculate column widths
-        let widths: Vec<usize> = self.columns.iter().map(|col| col.calculate_width()).collect();
+        let widths: Vec<usize> = self
+            .columns
+            .iter()
+            .map(|col| col.calculate_width())
+            .collect();
 
         // Build header row (text cells wrapped in inline code; link cells just padded)
         let header_cells: Vec<String> = self

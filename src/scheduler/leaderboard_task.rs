@@ -31,9 +31,10 @@ async fn check_weekly_leaderboard(
     hour: u32,
     config: &crate::config::SchedulerConfig,
 ) -> Result<(), Error> {
-    if let (Some(configured_day), Some(configured_hour)) =
-        (config.weekly_leaderboard_day, config.weekly_leaderboard_hour)
-    {
+    if let (Some(configured_day), Some(configured_hour)) = (
+        config.weekly_leaderboard_day,
+        config.weekly_leaderboard_hour,
+    ) {
         if weekday == configured_day as u32 && hour == configured_hour as u32 {
             info!("Weekly leaderboard trigger matched, publishing");
             publish_leaderboard(ctx, Duration::Week).await?;
@@ -63,7 +64,7 @@ async fn check_monthly_leaderboard(
 #[tracing::instrument(level = "info", skip(ctx))]
 async fn publish_leaderboard(ctx: Arc<SchedulerContext>, duration: Duration) -> Result<(), Error> {
     info!(duration = ?duration, "Publishing leaderboard");
-    
+
     let mut conn = database_access::get_new_connection().await?;
     let servers = servers_db::query_all_servers(&mut conn).await?;
 
@@ -101,7 +102,7 @@ async fn publish_to_server(
 
     let channel = get_channel(&ctx, channel_id_value, &server).await?;
     let players = get_server_players(conn, &server).await?;
-    
+
     if players.is_empty() {
         info!(
             server_id = server.server_id,
@@ -112,7 +113,7 @@ async fn publish_to_server(
     }
 
     let messages = generate_leaderboard_messages(conn, players, duration, &server).await?;
-    
+
     if messages.is_empty() {
         info!(
             server_id = server.server_id,
@@ -124,7 +125,7 @@ async fn publish_to_server(
     }
 
     send_leaderboard_messages(&ctx, &channel, &server, channel_id_value, messages).await?;
-    
+
     info!(
         server_id = server.server_id,
         server_name = ?server.server_name,
@@ -157,13 +158,14 @@ async fn get_channel(
 async fn get_server_players(
     conn: &mut sqlx::SqliteConnection,
     server: &servers_db::DiscordServer,
-) -> Result<Vec<player_servers_db::PlayerServer>, Error> {
-    player_servers_db::query_server_players(conn, Some(server.server_id)).await
+) -> Result<Vec<player_servers_db::PlayerServerModel>, Error> {
+    let db = database_access::get_sea_orm_connection()?;
+    player_servers_db::query_server_players(db, Some(server.server_id)).await
 }
 
 async fn generate_leaderboard_messages(
     conn: &mut sqlx::SqliteConnection,
-    players: Vec<player_servers_db::PlayerServer>,
+    players: Vec<player_servers_db::PlayerServerModel>,
     duration: Duration,
     server: &servers_db::DiscordServer,
 ) -> Result<Vec<String>, Error> {
@@ -199,12 +201,12 @@ async fn send_leaderboard_messages(
     messages: Vec<String>,
 ) -> Result<(), Error> {
     let batches = batch_contents(messages, ctx.config.max_message_length);
-    
+
     for batch in batches {
         let message = serenity::CreateMessage::default()
             .content(batch)
             .flags(serenity::MessageFlags::SUPPRESS_EMBEDS);
-        
+
         if let Err(e) = channel.id().send_message(&ctx.http, message).await {
             error!(
                 server_id = server.server_id,
@@ -215,14 +217,14 @@ async fn send_leaderboard_messages(
             );
         }
     }
-    
+
     Ok(())
 }
 
 fn batch_contents(contents: Vec<String>, max_length: usize) -> Vec<String> {
     let mut batches = Vec::new();
     let mut current_batch = String::new();
-    
+
     for content in contents {
         let separator_len = if current_batch.is_empty() { 0 } else { 1 };
         if current_batch.len() + content.len() + separator_len > max_length {
@@ -232,10 +234,10 @@ fn batch_contents(contents: Vec<String>, max_length: usize) -> Vec<String> {
             current_batch.push_str(&content);
         }
     }
-    
+
     if !current_batch.is_empty() {
         batches.push(current_batch);
     }
-    
+
     batches
 }

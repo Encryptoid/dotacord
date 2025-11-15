@@ -47,9 +47,7 @@ pub async fn insert_server(
     Ok(())
 }
 
-pub async fn query_all_servers(
-    conn: &mut SqliteConnection,
-) -> Result<Vec<DiscordServer>, Error> {
+pub async fn query_all_servers(conn: &mut SqliteConnection) -> Result<Vec<DiscordServer>, Error> {
     let servers = sqlx::query_as::<_, DiscordServer>(
         r#"
             SELECT server_id, server_name, channel_id, is_sub_week, is_sub_month

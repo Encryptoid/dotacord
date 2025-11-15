@@ -3,8 +3,8 @@ mod config;
 mod database;
 mod discord;
 mod leaderboard;
-mod markdown;
 mod logging;
+mod markdown;
 mod scheduler;
 mod util;
 use ::serenity::all::Token;
@@ -29,6 +29,7 @@ async fn main() -> Result<(), Error> {
 
     hero_cache::init_cache(&cfg.heroes_path).expect("Could not init hero cache");
     database_access::init_database(&cfg.database_path)?;
+    database_access::init_sea_orm_database(&cfg.database_path).await?;
 
     // if cfg.clear_commands_on_startup {
     //     clear_commands_from_server(&cfg).await?;
@@ -36,11 +37,11 @@ async fn main() -> Result<(), Error> {
 
     let cfg_for_scheduler = cfg.clone();
     let commands = discord::commands().await;
-    
+
     let token = Token::from_env(&cfg.discord_api_key)?;
     let http = serenity::http::Http::new(token.clone());
     http.set_application_id(http.get_current_application_info().await?.id);
-    
+
     info!("Registering application commands");
     if let Some(guild_id) = cfg.test_guild {
         let guild = serenity::GuildId::new(guild_id);
@@ -55,10 +56,11 @@ async fn main() -> Result<(), Error> {
     });
 
     let cfg_arc = std::sync::Arc::new(Data { config: cfg });
-    let mut client = serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
-        .data(cfg_arc)
-        .framework(framework)
-        .await?;
+    let mut client =
+        serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
+            .data(cfg_arc)
+            .framework(framework)
+            .await?;
 
     let http_for_scheduler = client.http.clone();
     scheduler::spawn_scheduler(cfg_for_scheduler, http_for_scheduler);

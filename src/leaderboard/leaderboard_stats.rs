@@ -3,14 +3,14 @@ use sqlx::SqliteConnection;
 use tracing::info;
 
 use crate::database::{player_matches_db, player_servers_db};
+use crate::leaderboard::section::LeaderboardSection;
 use crate::leaderboard::stats_calculator::{self, PlayerStats};
-use crate::leaderboard::stats_formatter::LeaderboardSection;
 use crate::leaderboard::{leaderboard_stats, sections};
 use crate::Error;
 
 pub async fn get_leaderboard_messages(
     conn: &mut SqliteConnection,
-    players: Vec<player_servers_db::PlayerServer>,
+    players: Vec<player_servers_db::PlayerServerModel>,
     start_utc: &DateTime<Utc>,
     end_utc: &DateTime<Utc>,
     duration_label: &str,
@@ -27,7 +27,7 @@ pub async fn get_leaderboard_messages(
 
 async fn get_player_stats(
     conn: &mut SqliteConnection,
-    players: Vec<player_servers_db::PlayerServer>,
+    players: Vec<player_servers_db::PlayerServerModel>,
     start_utc: &DateTime<Utc>,
     end_utc: &DateTime<Utc>,
 ) -> Result<Vec<PlayerStats>, Error> {

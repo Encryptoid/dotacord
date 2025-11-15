@@ -1,4 +1,4 @@
-use crate::leaderboard::stats_formatter::LeaderboardSection;
+use crate::leaderboard::section::LeaderboardSection;
 
 use super::emoji::Emoji;
 use super::section_formatter;

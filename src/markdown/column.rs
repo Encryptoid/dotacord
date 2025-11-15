@@ -10,4 +10,3 @@ impl std::fmt::Debug for dyn Column {
         f.write_str("Column")
     }
 }
-

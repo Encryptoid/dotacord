@@ -1,9 +1,9 @@
 use super::stats_calculator::PlayerStats;
 use crate::api::open_dota_links;
 use crate::database::hero_cache;
-use crate::leaderboard::stats_formatter::LeaderboardSection;
-use crate::util::dates::format_section_timestamp;
+use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::{Link, TableBuilder, Text};
+use crate::util::dates::format_section_timestamp;
 
 pub fn build_winrate_section(
     duration_label: &str,
@@ -44,58 +44,57 @@ pub fn build_winrate_section(
             .collect();
         builder = builder.add_column(Link::new(link_urls));
     }
-    Some(builder
-        .add_column(Text::new(
-            "Player",
-            sorted_stats
-                .iter()
-                .map(|s| s.player_name.clone())
-                .collect(),
-        ))
-        .add_column(Text::new(
-            "Win%",
-            sorted_stats
-                .iter()
-                .map(|s| {
-                    let (wins, total) = selector(s);
-                    if total > 0 {
-                        let win_rate = (wins as f64 / total as f64) * 100.0;
-                        format!("{:>3.0}%", win_rate)
-                    } else {
-                        "-".to_string()
-                    }
-                })
-                .collect(),
-        ))
-        .add_column(Text::new(
-            "Wins",
-            sorted_stats
-                .iter()
-                .map(|s| {
-                    let (wins, total) = selector(s);
-                    if total > 0 {
-                        wins.to_string()
-                    } else {
-                        "-".to_string()
-                    }
-                })
-                .collect(),
-        ))
-        .add_column(Text::new(
-            "Total",
-            sorted_stats
-                .iter()
-                .map(|s| {
-                    let (_, total) = selector(s);
-                    if total > 0 {
-                        total.to_string()
-                    } else {
-                        total.to_string()
-                    }
-                })
-                .collect(),
-        ))
-        .build())
+    Some(
+        builder
+            .add_column(Text::new(
+                "Player",
+                sorted_stats.iter().map(|s| s.player_name.clone()).collect(),
+            ))
+            .add_column(Text::new(
+                "Win%",
+                sorted_stats
+                    .iter()
+                    .map(|s| {
+                        let (wins, total) = selector(s);
+                        if total > 0 {
+                            let win_rate = (wins as f64 / total as f64) * 100.0;
+                            format!("{:>3.0}%", win_rate)
+                        } else {
+                            "-".to_string()
+                        }
+                    })
+                    .collect(),
+            ))
+            .add_column(Text::new(
+                "Wins",
+                sorted_stats
+                    .iter()
+                    .map(|s| {
+                        let (wins, total) = selector(s);
+                        if total > 0 {
+                            wins.to_string()
+                        } else {
+                            "-".to_string()
+                        }
+                    })
+                    .collect(),
+            ))
+            .add_column(Text::new(
+                "Total",
+                sorted_stats
+                    .iter()
+                    .map(|s| {
+                        let (_, total) = selector(s);
+                        if total > 0 {
+                            total.to_string()
+                        } else {
+                            total.to_string()
+                        }
+                    })
+                    .collect(),
+            ))
+            .build(),
+    )
 }
 
 pub fn build_hero_spam_section(
@@ -138,16 +137,13 @@ pub fn build_hero_spam_section(
             .collect();
         builder = builder.add_column(Link::new(link_urls));
     }
-    Some(builder
-        .add_column(Text::new(
-            "Player",
-            sorted_stats
-                .iter()
-                .map(|s| s.player_name.clone())
-                .collect(),
-        ))
-        .add_column(
-            Text::new(
+    Some(
+        builder
+            .add_column(Text::new(
+                "Player",
+                sorted_stats.iter().map(|s| s.player_name.clone()).collect(),
+            ))
+            .add_column(Text::new(
                 "Hero",
                 sorted_stats
                     .iter()
@@ -157,36 +153,35 @@ pub fn build_hero_spam_section(
                             .to_string()
                     })
                     .collect(),
-            )
-        )
-        .add_column(Text::new(
-            "Count",
-            sorted_stats
-                .iter()
-                .map(|s| s.hero_pick_stat.matches.to_string())
-                .collect(),
-        ))
-        .add_column(Text::new(
-            "Matches",
-            sorted_stats
-                .iter()
-                .map(|s| s.overall_stats.total_matches.to_string())
-                .collect(),
-        ))
-        .add_column(Text::new(
-            "Pick%",
-            sorted_stats
-                .iter()
-                .map(|s| {
-                    let percentage =
-                        (s.hero_pick_stat.matches as f32
+            ))
+            .add_column(Text::new(
+                "Count",
+                sorted_stats
+                    .iter()
+                    .map(|s| s.hero_pick_stat.matches.to_string())
+                    .collect(),
+            ))
+            .add_column(Text::new(
+                "Matches",
+                sorted_stats
+                    .iter()
+                    .map(|s| s.overall_stats.total_matches.to_string())
+                    .collect(),
+            ))
+            .add_column(Text::new(
+                "Pick%",
+                sorted_stats
+                    .iter()
+                    .map(|s| {
+                        let percentage = (s.hero_pick_stat.matches as f32
                             / s.overall_stats.total_matches as f32)
                             * 100.0;
-                    format!("{:>3.0}%", percentage)
-                })
-                .collect(),
-        ))
-        .build())
+                        format!("{:>3.0}%", percentage)
+                    })
+                    .collect(),
+            ))
+            .build(),
+    )
 }
 
 pub fn build_single_match_stat_section(
@@ -269,7 +264,8 @@ pub fn build_single_match_stat_section(
     if include_links {
         builder = builder.add_column(Link::new(link_urls));
     }
-    builder = builder.add_column(Text::new("Player", player_column))
+    builder = builder
+        .add_column(Text::new("Player", player_column))
         .add_column(Text::new(stat_name, stat_column))
         .add_column(Text::new("Hero", hero_column))
         .add_column(Text::new("Outcome", outcome_column))
@@ -373,7 +369,8 @@ pub fn build_longest_match_section(
     if include_links {
         builder = builder.add_column(Link::new(link_urls));
     }
-    builder = builder.add_column(Text::new("Player", player_column))
+    builder = builder
+        .add_column(Text::new("Player", player_column))
         .add_column(Text::new("Duration", duration_column))
         .add_column(Text::new("Hero", hero_column))
         .add_column(Text::new("Outcome", outcome_column))
@@ -383,5 +380,3 @@ pub fn build_longest_match_section(
     let section = builder.build();
     Some(section)
 }
-
-

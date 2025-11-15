@@ -14,12 +14,13 @@ pub struct ReloadPlayerStat {
 #[tracing::instrument(level = "trace", skip(conn))]
 pub async fn reload_player(
     conn: &mut sqlx::SqliteConnection,
-    player: &player_servers_db::PlayerServer,
+    player: &player_servers_db::PlayerServerModel,
 ) -> ReloadPlayerStat {
     info!(player_id = player.player_id, "Reloading matches for player");
-    
+
     let result = async {
-        let db_matches = player_matches_db::query_matches_by_player_id(conn, player.player_id).await?;
+        let db_matches =
+            player_matches_db::query_matches_by_player_id(conn, player.player_id).await?;
         let api_matches = open_dota_api::get_player_matches(player.player_id).await?;
 
         info!(
@@ -33,14 +34,13 @@ pub async fn reload_player(
             info!(
                 player_id = player.player_id,
                 server_id = player.server_id,
-                "No matches found from OpenDota API. Removing player from server."
+                "No matches found from OpenDota API. Player may need to be removed."
             );
-            player_servers_db::remove_server_player_by_user_id(conn, player.server_id, player.user_id)
-                .await?;
             return Ok(None);
         }
 
-        let match_count = import_new_matches(conn, player.player_id, &db_matches, &api_matches).await?;
+        let match_count =
+            import_new_matches(conn, player.player_id, &db_matches, &api_matches).await?;
 
         info!(
             player_id = player.player_id,
@@ -55,7 +55,7 @@ pub async fn reload_player(
 
     ReloadPlayerStat {
         player_id: player.player_id,
-        display_name: player.display_name().to_string(),
+        display_name: player.player_name.clone(),
         result,
     }
 }
@@ -90,7 +90,7 @@ async fn import_new_matches(
 
 pub async fn reload_all_players(
     conn: &mut sqlx::SqliteConnection,
-    players: Vec<player_servers_db::PlayerServer>,
+    players: Vec<player_servers_db::PlayerServerModel>,
 ) -> Vec<ReloadPlayerStat> {
     let mut stats = Vec::new();
 

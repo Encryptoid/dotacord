@@ -40,7 +40,11 @@ impl crate::markdown::Column for Link {
 
     fn format_cell(&self, row_index: usize, width: usize) -> String {
         // Just use the text for padding - the [](url) syntax isn't rendered by Discord
-        format!("{:<width$}", mask_link(&self.urls[row_index], &self.text), width = width)
+        format!(
+            "{:<width$}",
+            mask_link(&self.urls[row_index], &self.text),
+            width = width
+        )
     }
 }
 

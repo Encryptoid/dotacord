@@ -1,11 +1,10 @@
-use poise::serenity_prelude::{
-    Channel, CreateMessage, Http,
-    MessageFlags,
-};
+use poise::serenity_prelude::{Channel, CreateMessage, Http, MessageFlags};
 use poise::{CreateReply, ReplyHandle};
+use tokio::time::Duration;
 use tracing::{debug, info, warn};
 
 use crate::database::servers_db;
+use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
 
 const GUILD_LOOKUP_ERROR: &str = "Could not get guild";
@@ -111,5 +110,44 @@ pub async fn send_message(channel: &Channel, http: &Http, content: &str) -> Resu
         )
         .await?;
 
+    Ok(())
+}
+
+pub(crate) async fn reply_countdown(
+    ctx: &Context<'_>,
+    initial_content: &str,
+    countdown_text: &str,
+    final_content: String,
+) -> Result<(), Error> {
+    let config = &ctx.data().config;
+    let duration_ms = config.countdown_duration_ms;
+    let offset_ms = config.countdown_offset_ms;
+    let count = (duration_ms / 1000) as i32;
+    let sleep_ms = (duration_ms / count as u64) + offset_ms;
+
+    let reply = public_reply(&ctx, initial_content.to_string()).await?;
+    for i in (1..=count).rev() {
+        tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
+        let countdown_content = format!(
+            "{}{} {} **{}...** {}",
+            initial_content,
+            countdown_text,
+            Emoji::BIG_SLAP,
+            i,
+            Emoji::BIG_SLAP
+        );
+        reply
+            .edit(*ctx, CreateReply::default().content(countdown_content))
+            .await
+            .ok();
+    }
+
+    reply
+        .edit(
+            *ctx,
+            CreateReply::default().content(format!("{}{}", initial_content, final_content)),
+        )
+        .await
+        .ok();
     Ok(())
 }

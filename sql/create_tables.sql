@@ -36,9 +36,7 @@ CREATE TABLE IF NOT EXISTS player_servers
 (
     player_id    INT    NOT NULL,
     server_id    BIGINT NOT NULL,
-    user_id      BIGINT NOT NULL,
-    discord_name TEXT   NOT NULL,
-    player_name  TEXT       NULL,
+    player_name  TEXT   NOT NULL,
 
     FOREIGN KEY (player_id) REFERENCES players (player_id),
     FOREIGN KEY (server_id) REFERENCES servers (server_id)

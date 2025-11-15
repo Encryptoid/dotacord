@@ -3,12 +3,18 @@ name = "dotacord"
 edition = "2021"
 
 [dependencies]
-poise = { path = "../ext/poise", features = ["cache"] }
-# poise = { git = "https://github.com/serenity-rs/poise", rev = "fe2f25097166e1e7fb56f341cbad9a2bc771a931"}
+# poise = { path = "../ext/poise", features = ["cache"] }
 serenity = { git = "https://github.com/serenity-rs/serenity", rev = "3009d22082cadab93e0f463e9d9868b656cd62bc" }
+# poise = { git = "https://github.com/Encryptoid/poise" }
+poise = { git = "ssh://git@github-encryptoid/Encryptoid/poise" }
+# poise = { git = "https://github.com/serenity-rs/poise", branch = "serenity-next"}
+# poise = { git = "https://github.com/serenity-rs/poise", rev = "17fd1d760ea810ce7f9b1810281a556bea4b340b"}
+# serenity = { git = "https://github.com/serenity-rs/serenity", rev = "17fd1d760ea810ce7f9b1810281a556bea4b340b" }
+# serenity = { git = "https://github.com/serenity-rs/serenity", branch = "17fd1d760ea810ce7f9b1810281a556bea4b340b" }
 
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "time", "sync"] }
 sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio", "sqlite", "macros"] }
+sea-orm = { version = "1", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "macros"] }
 serde_json = "1.0.145"
 rand = "0.9.2"
 serde = { version = "1", features = ["derive"] }
@@ -22,4 +28,3 @@ ureq = "2.12"
 
 [workspace.lints.rust]
 unused = "deny"
-

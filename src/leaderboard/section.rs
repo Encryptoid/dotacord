@@ -1,9 +1,9 @@
-pub struct Section {
+pub struct LeaderboardSection {
     pub title: String,
     pub lines: Vec<String>,
 }
 
-impl Section {
+impl LeaderboardSection {
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),

@@ -1,4 +1,5 @@
 pub mod database_access;
+pub mod entities;
 pub mod hero_cache;
 pub mod player_matches_db;
 pub mod player_servers_db;

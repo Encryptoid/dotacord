@@ -35,7 +35,8 @@ impl crate::markdown::Column for Text {
     fn calculate_width(&self) -> usize {
         // NOTE: Discord renders inline code `text` as just the visible text,
         // so the rendered width is only text.len(), not including the backticks.
-        let max_value_width = self.values
+        let max_value_width = self
+            .values
             .iter()
             .map(|value| value.len())
             .max()

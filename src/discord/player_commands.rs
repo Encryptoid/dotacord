@@ -1,9 +1,9 @@
 use poise::serenity_prelude::User;
-use tracing::{info, warn};
+use tracing::info;
 
 use super::discord_helper;
 use crate::api::open_dota_links;
-use crate::database::player_servers_db::PlayerServer;
+use crate::database::player_servers_db::PlayerServerModel;
 use crate::database::{database_access, player_servers_db, players_db, servers_db};
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::{Context, Error};
@@ -12,12 +12,13 @@ use crate::{Context, Error};
 #[poise::command(slash_command, guild_only)]
 pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
     let mut conn = database_access::get_new_connection().await?;
+    let db = database_access::get_sea_orm_connection()?;
     let guild_id = discord_helper::guild_id(&ctx)?;
     if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
         return Ok(());
     }
 
-    let player_servers = player_servers_db::query_server_players(&mut conn, Some(guild_id)).await?;
+    let player_servers = player_servers_db::query_server_players(db, Some(guild_id)).await?;
     let member = ctx
         .author_member()
         .await
@@ -40,18 +41,18 @@ pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(slash_command, prefix_command)]
 pub async fn add_player(
     ctx: Context<'_>,
-    #[description = "The Discord user"] discord_user: User,
+    #[description = "Name for the player to add to this server"] name: String,
     #[description = "Dota Player Id(taken from OpenDota/Dotabuff)"] player_id: i64,
-    #[description = "A custom name for the player on this server (optional)"] name: Option<String>,
 ) -> Result<(), Error> {
     let mut conn = database_access::get_new_connection().await?;
+    let db = database_access::get_sea_orm_connection()?;
     let guild_id = discord_helper::guild_id(&ctx)?;
     let server_name = discord_helper::guild_name(&ctx)?;
     if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
         return Ok(());
     }
 
-    let player_servers = player_servers_db::query_server_players(&mut conn, Some(guild_id)).await?;
+    let player_servers = player_servers_db::query_server_players(db, Some(guild_id)).await?;
 
     if player_servers.len() >= ctx.data().config.max_players_per_server {
         discord_helper::private_reply(
@@ -65,11 +66,10 @@ pub async fn add_player(
         return Ok(());
     }
 
-    let display_name = discord_user.display_name().to_string();
     if player_servers.iter().any(|ps| ps.player_id == player_id) {
         discord_helper::private_reply(
             &ctx,
-            format!("Dota player {display_name} ({player_id}) is already on this server"),
+            format!("Dota player {name} ({player_id}) is already on this server"),
         )
         .await?;
         return Ok(());
@@ -77,36 +77,11 @@ pub async fn add_player(
 
     players_db::try_add_player(&mut conn, player_id).await?;
 
-    let discord_user_id = discord_user.id.get() as i64;
-    let discord_name = discord_user.global_name.unwrap_or(discord_user.name);
-    if let Some(existing) = player_servers
-        .iter()
-        .find(|ps| ps.user_id == discord_user_id)
-    {
-        discord_helper::private_reply(
-            &ctx,
-            format!(
-                "Discord user {display_name} is already registered on this server as player {}",
-                existing.player_id
-            ),
-        )
-        .await?;
-        return Ok(());
-    }
-
-    info!("Inserting: {display_name} to Player Server: {server_name} (ID: {guild_id})");
-    player_servers_db::insert_player_server(
-        &mut conn,
-        guild_id,
-        player_id,
-        discord_user.id.get() as i64,
-        &discord_name,
-        name.as_deref(),
-    )
-    .await?;
+    info!("Inserting: {name} to Player Server: {server_name} (ID: {guild_id})");
+    player_servers_db::insert_player_server(db, guild_id, player_id, &name).await?;
     discord_helper::private_reply(
         &ctx,
-        format!("Player {discord_name} ({player_id}) has been added to this server."),
+        format!("Player {name} ({player_id}) has been added to this server."),
     )
     .await?;
     Ok(())
@@ -120,13 +95,14 @@ pub async fn remove_player(
     let guild_id = discord_helper::guild_id(&ctx)?;
     let server_name = discord_helper::guild_name(&ctx)?;
     let mut conn = database_access::get_new_connection().await?;
+    let db = database_access::get_sea_orm_connection()?;
 
     if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
         return Ok(());
     }
 
     let removed = player_servers_db::remove_server_player_by_user_id(
-        &mut conn,
+        db,
         guild_id,
         discord_user.id.get() as i64,
     )
@@ -151,6 +127,7 @@ pub async fn rename_player(
     let guild_id = discord_helper::guild_id(&ctx)?;
     let server_name = discord_helper::guild_name(&ctx)?;
     let mut conn = database_access::get_new_connection().await?;
+    let db = database_access::get_sea_orm_connection()?;
     if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
         return Ok(());
     }
@@ -167,7 +144,7 @@ pub async fn rename_player(
     );
 
     let renamed = player_servers_db::rename_server_player_by_user_id(
-        &mut conn,
+        db,
         guild_id,
         discord_user.id.get() as i64,
         &new_name,
@@ -217,23 +194,19 @@ pub async fn register_server(
     }
 }
 
-pub fn format_list_players(players: &Vec<PlayerServer>) -> String {
+pub fn format_list_players(players: &Vec<PlayerServerModel>) -> String {
     let title = format!("{} player(s) registered to this server:", players.len());
 
     if players.is_empty() {
         return format!("{}\nNo data available.", title);
     }
 
-    let mut sorted_players: Vec<&PlayerServer> = players.iter().collect();
-    sorted_players.sort_by(|a, b| a.display_name().cmp(&b.display_name()));
+    let mut sorted_players: Vec<&PlayerServerModel> = players.iter().collect();
+    sorted_players.sort_by(|a, b| a.player_name.cmp(&b.player_name));
 
-    let discord_users: Vec<String> = sorted_players
-        .iter()
-        .map(|s| format!("@{}", s.discord_name))
-        .collect();
     let nicknames: Vec<String> = sorted_players
         .iter()
-        .map(|s| s.player_name.clone().unwrap_or("-".to_string()))
+        .map(|s| s.player_name.clone())
         .collect();
     let player_ids: Vec<String> = sorted_players
         .iter()
@@ -245,8 +218,7 @@ pub fn format_list_players(players: &Vec<PlayerServer>) -> String {
         .collect();
 
     let section = TableBuilder::new(title.clone())
-        .add_column(Text::new("Discord User", discord_users))
-        .add_column(Text::new("Nickname", nicknames))
+        .add_column(Text::new("Player Name", nicknames))
         .add_column(Text::new("Player ID", player_ids))
         .add_column(Link::new(links))
         .build();
@@ -256,5 +228,3 @@ pub fn format_list_players(players: &Vec<PlayerServer>) -> String {
     lines.extend(section.lines);
     lines.join("\n")
 }
-
-

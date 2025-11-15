@@ -15,6 +15,7 @@ pub async fn leaderboard(
     #[description = "The duration for the leaderboard"] duration: Duration,
 ) -> Result<(), Error> {
     let mut conn = database_access::get_new_connection().await?;
+    let db = database_access::get_sea_orm_connection()?;
     let guild_id = discord_helper::guild_id(&ctx)?;
     if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
         return Ok(());
@@ -22,7 +23,7 @@ pub async fn leaderboard(
 
     let end_utc = Utc::now();
     let start_utc = duration.start_date(end_utc);
-    let players = player_servers_db::query_server_players(&mut conn, Some(guild_id)).await?;
+    let players = player_servers_db::query_server_players(db, Some(guild_id)).await?;
     if players.is_empty() {
         info!(guild_id = ?guild_id, "No players registered on server - cannot generate leaderboard");
         discord_helper::private_reply(
