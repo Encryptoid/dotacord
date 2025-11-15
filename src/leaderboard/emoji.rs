@@ -1,5 +1,6 @@
 pub struct Emoji;
 
+#[allow(dead_code)]
 impl Emoji {
     pub const AEGIS2015: &'static str = "<a:dota_aegis2015:1388977461722615878>";
     pub const AGHS_SCEPTER: &'static str = "<a:dota_aghs_scepter:1439218522336133161>";

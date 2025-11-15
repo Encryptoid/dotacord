@@ -1,4 +1,4 @@
-use crate::database::player_matches_db::PlayerMatch;
+use crate::database::player_matches_db::PlayerMatchModel;
 use crate::Error;
 
 #[derive(Debug, Clone, Default)]
@@ -62,7 +62,7 @@ pub struct SingleMatchStat {
 }
 
 struct StatTracker<'a> {
-    player_match: Option<&'a PlayerMatch>,
+    player_match: Option<&'a PlayerMatchModel>,
     value: i32,
     total: i32,
 }
@@ -79,7 +79,7 @@ impl<'a> StatTracker<'a> {
 
 #[tracing::instrument(level = "trace", skip(matches))]
 pub fn player_matches_to_stats(
-    matches: &[PlayerMatch],
+    matches: &[PlayerMatchModel],
     player_id: i64,
     player_name: String,
 ) -> Result<PlayerStats, Error> {

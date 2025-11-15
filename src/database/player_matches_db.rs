@@ -1,33 +1,17 @@
-use sqlx::{FromRow, SqliteConnection};
-use tracing::debug;
+use sea_orm::*;
 
 use crate::api::open_dota_api::ApiPlayerMatch;
+use crate::database::entities::{player_match, PlayerMatch};
 use crate::database::hero_cache;
 use crate::database::types::{Faction, GameMode, LobbyType, MapperError};
 use crate::Error;
 
-#[derive(Debug, Clone, FromRow)]
-pub(crate) struct PlayerMatch {
-    pub match_id: i64,
-    pub player_id: i64,
-    pub hero_id: i32,
-    pub kills: i32,
-    pub deaths: i32,
-    pub assists: i32,
-    pub rank: i32,
-    pub party_size: i32,
-    pub faction: i32,
-    pub is_victory: bool,
-    pub start_time: i64,
-    pub duration: i32,
-    pub game_mode: i32,
-    pub lobby_type: i32,
-}
+pub use player_match::Model as PlayerMatchModel;
 
 pub(crate) fn map_to_player_match(
     api_match: &ApiPlayerMatch,
     player_id: i64,
-) -> Result<Option<PlayerMatch>, MapperError> {
+) -> Result<Option<player_match::Model>, MapperError> {
     let match_id = api_match.match_id;
     if match_id == 1439386853 {
         return Ok(None);
@@ -118,7 +102,7 @@ pub(crate) fn map_to_player_match(
     let faction = Faction::from_player_slot(player_slot);
     let is_victory = matches!(faction, Faction::Radiant) == radiant_win;
 
-    Ok(Some(PlayerMatch {
+    Ok(Some(player_match::Model {
         match_id,
         player_id,
         hero_id,
@@ -137,121 +121,37 @@ pub(crate) fn map_to_player_match(
 }
 
 pub async fn insert_player_match(
-    conn: &mut SqliteConnection,
-    player_match: &PlayerMatch,
+    db: &DatabaseConnection,
+    player_match: player_match::Model,
 ) -> Result<(), Error> {
-    debug!(
-        match_id = player_match.match_id,
-        player_id = player_match.player_id,
-        "Inserting player match"
-    );
-    sqlx::query(
-        r#"
-            INSERT INTO player_matches (
-                match_id,
-                player_id,
-                hero_id,
-                kills,
-                deaths,
-                assists,
-                rank,
-                party_size,
-                faction,
-                is_victory,
-                start_time,
-                duration,
-                game_mode,
-                lobby_type
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        "#,
-    )
-    .bind(player_match.match_id)
-    .bind(player_match.player_id)
-    .bind(player_match.hero_id)
-    .bind(player_match.kills)
-    .bind(player_match.deaths)
-    .bind(player_match.assists)
-    .bind(player_match.rank)
-    .bind(player_match.party_size)
-    .bind(player_match.faction)
-    .bind(if player_match.is_victory { 1 } else { 0 })
-    .bind(player_match.start_time)
-    .bind(player_match.duration)
-    .bind(player_match.game_mode)
-    .bind(player_match.lobby_type)
-    .execute(conn)
-    .await?;
-
+    let active_model: player_match::ActiveModel = player_match.into();
+    PlayerMatch::insert(active_model).exec(db).await?;
     Ok(())
 }
 
-#[allow(dead_code)]
 pub async fn query_matches_by_player_id(
-    conn: &mut SqliteConnection,
+    db: &DatabaseConnection,
     player_id: i64,
-) -> Result<Vec<PlayerMatch>, Error> {
-    let rows: Vec<PlayerMatch> = sqlx::query_as(
-        r#"
-            SELECT
-                match_id,
-                player_id,
-                hero_id,
-                kills,
-                deaths,
-                assists,
-                rank,
-                party_size,
-                faction,
-                is_victory,
-                start_time,
-                duration,
-                game_mode,
-                lobby_type
-            FROM player_matches
-            WHERE player_id = ?
-        "#,
-    )
-    .bind(player_id as i64)
-    .fetch_all(conn)
-    .await?;
+) -> Result<Vec<player_match::Model>, Error> {
+    let rows = PlayerMatch::find()
+        .filter(player_match::Column::PlayerId.eq(player_id))
+        .all(db)
+        .await?;
 
     Ok(rows)
 }
 
 pub async fn query_matches_by_duration(
-    conn: &mut SqliteConnection,
+    db: &DatabaseConnection,
     player_id: i64,
     start_date: i32,
     end_date: i32,
-) -> Result<Vec<PlayerMatch>, Error> {
-    let rows: Vec<PlayerMatch> = sqlx::query_as(
-        r#"
-            SELECT
-                pm.match_id,
-                pm.player_id,
-                pm.hero_id,
-                pm.kills,
-                pm.deaths,
-                pm.assists,
-                pm.rank,
-                pm.party_size,
-                pm.faction,
-                pm.is_victory,
-                pm.start_time,
-                pm.duration,
-                pm.game_mode,
-                pm.lobby_type
-            FROM player_matches pm
-            WHERE pm.player_id = ?
-              AND pm.start_time BETWEEN ? AND ?
-        "#,
-    )
-    .bind(player_id as i64)
-    .bind(start_date)
-    .bind(end_date)
-    .fetch_all(conn)
-    .await?;
+) -> Result<Vec<player_match::Model>, Error> {
+    let rows = PlayerMatch::find()
+        .filter(player_match::Column::PlayerId.eq(player_id))
+        .filter(player_match::Column::StartTime.between(start_date, end_date))
+        .all(db)
+        .await?;
 
     Ok(rows)
 }

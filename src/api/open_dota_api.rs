@@ -4,7 +4,7 @@ use tracing::info;
 const BASE_URL: &str = "https://api.opendota.com/api";
 
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct ApiPlayerMatch {
+pub struct ApiPlayerMatch {
     pub match_id: i64,
     pub player_slot: Option<i32>,
     pub radiant_win: Option<bool>,

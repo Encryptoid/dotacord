@@ -26,7 +26,8 @@ countdown_offset_ms = 100
 
 [scheduler]
 enabled = true
-heartbeat_interval_minutes = 10
+heartbeat_interval_minutes = 1
+timer_check_mins = 1
 auto_reload_start_hour = 16
 auto_reload_end_hour = 3
 auto_reload_interval_minutes = 60

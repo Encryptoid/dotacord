@@ -1,56 +1,35 @@
-use sqlx::{Error as SqlxError, FromRow, SqliteConnection};
+use sea_orm::*;
 use tracing::info;
 
+use crate::database::entities::{player, Player};
 use crate::Error;
 
-#[derive(Debug, Clone, FromRow)]
-pub(crate) struct DotaPlayer {
-    pub player_id: i64,
-}
+pub use player::Model as DotaPlayer;
 
-pub async fn try_add_player(
-    conn: &mut SqliteConnection,
-    player_id: i64,
-) -> Result<DotaPlayer, Error> {
-    if let Some(player) = query_player_by_id(conn, &player_id).await? {
+pub async fn try_add_player(db: &DatabaseConnection, player_id: i64) -> Result<DotaPlayer, Error> {
+    if let Some(player) = query_player_by_id(db, player_id).await? {
         info!("Player found: {}", player.player_id);
         Ok(player)
     } else {
         info!("Player not found. Adding new player: {}", player_id);
-        insert_dota_player(conn, &player_id).await?;
+        insert_dota_player(db, player_id).await?;
         Ok(DotaPlayer { player_id })
     }
 }
 
 async fn query_player_by_id(
-    conn: &mut SqliteConnection,
-    player_id: &i64,
-) -> Result<Option<DotaPlayer>, SqlxError> {
-    let row: Option<DotaPlayer> = sqlx::query_as(
-        r#"
-            SELECT
-                player_id
-            FROM players
-            WHERE player_id = ?
-        "#,
-    )
-    .bind(*player_id as i64)
-    .fetch_optional(conn)
-    .await?;
-
+    db: &DatabaseConnection,
+    player_id: i64,
+) -> Result<Option<DotaPlayer>, Error> {
+    let row = Player::find_by_id(player_id).one(db).await?;
     Ok(row)
 }
 
-async fn insert_dota_player(conn: &mut SqliteConnection, player_id: &i64) -> Result<(), SqlxError> {
-    sqlx::query(
-        r#"
-            INSERT INTO players (player_id)
-            VALUES (?)
-        "#,
-    )
-    .bind(*player_id as i64)
-    .execute(conn)
-    .await?;
+async fn insert_dota_player(db: &DatabaseConnection, player_id: i64) -> Result<(), Error> {
+    let new_player = player::ActiveModel {
+        player_id: Set(player_id),
+    };
 
+    Player::insert(new_player).exec(db).await?;
     Ok(())
 }

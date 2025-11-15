@@ -30,11 +30,16 @@ struct FileConfig {
 pub struct SchedulerConfig {
     pub enabled: bool,
     pub heartbeat_interval_minutes: u64,
+
+    pub timer_check_mins: u64,
+
     pub auto_reload_start_hour: u8,
     pub auto_reload_end_hour: u8,
     pub auto_reload_interval_minutes: u64,
+
     pub weekly_leaderboard_day: Option<u8>,
     pub weekly_leaderboard_hour: Option<u8>,
+
     pub monthly_leaderboard_day: Option<u8>,
     pub monthly_leaderboard_hour: Option<u8>,
 }

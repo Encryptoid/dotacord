@@ -631,7 +631,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
- "sqlx",
  "tokio",
  "toml",
  "tracing",

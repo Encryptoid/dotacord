@@ -18,9 +18,21 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         misc_commands::roll(),
         leaderboard_command::leaderboard(),
         flip_command::flip(),
-        // ready_command::modal(),
-        // ready_command::component_modal(),
     ];
+
+    let test = poise::Command {
+        name: std::borrow::Cow::Borrowed("test"),
+        description: Some(std::borrow::Cow::Borrowed("Test command for development")),
+        slash_action: Some(|ctx| {
+            Box::pin(async move {
+                ctx.say("Test command executed").await.unwrap();
+                Ok(())
+            })
+        }),
+        ..Default::default()
+    };
+
+    cmds.push(test);
 
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![
         player_commands::add_player(),

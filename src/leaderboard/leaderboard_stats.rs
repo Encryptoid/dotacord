@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use sqlx::SqliteConnection;
+use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use tracing::info;
 
 use crate::database::{player_matches_db, player_servers_db};
@@ -9,14 +9,13 @@ use crate::leaderboard::{leaderboard_stats, sections};
 use crate::Error;
 
 pub async fn get_leaderboard_messages(
-    conn: &mut SqliteConnection,
+    db: &DatabaseTransaction,
     players: Vec<player_servers_db::PlayerServerModel>,
     start_utc: &DateTime<Utc>,
     end_utc: &DateTime<Utc>,
     duration_label: &str,
 ) -> Result<Vec<String>, Error> {
-    let all_stats =
-        leaderboard_stats::get_player_stats(conn, players, &start_utc, &end_utc).await?;
+    let all_stats = leaderboard_stats::get_player_stats(db, players, &start_utc, &end_utc).await?;
     let sections = sections::get_leaderboard_sections(&duration_label, &all_stats);
     Ok(sections
         .iter()
@@ -26,7 +25,7 @@ pub async fn get_leaderboard_messages(
 }
 
 async fn get_player_stats(
-    conn: &mut SqliteConnection,
+    db: &DatabaseTransaction,
     players: Vec<player_servers_db::PlayerServerModel>,
     start_utc: &DateTime<Utc>,
     end_utc: &DateTime<Utc>,
@@ -34,7 +33,7 @@ async fn get_player_stats(
     let mut all_stats = Vec::new();
     for player in players {
         let matches = player_matches_db::query_matches_by_duration(
-            conn,
+            db,
             player.player_id,
             start_utc.timestamp() as i32,
             end_utc.timestamp() as i32,
@@ -52,7 +51,7 @@ async fn get_player_stats(
         let stats = stats_calculator::player_matches_to_stats(
             &matches,
             player.player_id,
-            player.display_name().to_string(),
+            player.player_name.clone(),
         )?;
         all_stats.push(stats);
     }

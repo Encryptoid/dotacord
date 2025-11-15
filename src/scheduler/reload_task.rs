@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::{Local, Timelike};
 use tracing::info;
 
@@ -9,21 +7,21 @@ use crate::scheduler::SchedulerContext;
 use crate::Error;
 
 #[tracing::instrument(level = "info", skip(ctx))]
-pub async fn auto_reload(ctx: Arc<SchedulerContext>) -> Result<(), Error> {
-    if !is_in_reload_window(&ctx) {
+pub async fn auto_reload(ctx: &SchedulerContext) -> Result<(), Error> {
+    if !is_in_reload_window(ctx) {
         return Ok(());
     }
 
     info!("Starting auto-reload of player matches");
-    let mut conn = database_access::get_new_connection().await?;
-    let players = player_servers_db::query_server_players(&mut conn, None).await?;
+    let db = database_access::get_connection()?;
+    let players = player_servers_db::query_server_players(db, None).await?;
 
     if players.is_empty() {
         info!("No players registered, skipping auto-reload");
         return Ok(());
     }
 
-    let stats = reload::reload_all_players(&mut conn, players).await;
+    let stats = reload::reload_all_players(db, players).await;
 
     let success_count = stats
         .iter()
@@ -36,10 +34,8 @@ pub async fn auto_reload(ctx: Arc<SchedulerContext>) -> Result<(), Error> {
         .count();
 
     info!(
-        success_count = success_count,
-        failure_count = failure_count,
-        removed_count = removed_count,
-        "Completed auto-reload"
+        success_count,
+        failure_count, removed_count, "Completed auto-reload"
     );
 
     Ok(())

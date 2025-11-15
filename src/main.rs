@@ -28,8 +28,7 @@ async fn main() -> Result<(), Error> {
     info!("Logging Initialised. Initialising Dotacord application");
 
     hero_cache::init_cache(&cfg.heroes_path).expect("Could not init hero cache");
-    database_access::init_database(&cfg.database_path)?;
-    database_access::init_sea_orm_database(&cfg.database_path).await?;
+    database_access::init_database(&cfg.database_path).await?;
 
     // if cfg.clear_commands_on_startup {
     //     clear_commands_from_server(&cfg).await?;

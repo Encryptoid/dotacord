@@ -3,7 +3,7 @@ use poise::CreateReply;
 use tracing::info;
 
 use crate::database::{database_access, player_servers_db};
-use crate::discord::discord_helper;
+use crate::discord::discord_helper::{self, CommandCtx};
 use crate::leaderboard::duration::Duration;
 use crate::leaderboard::leaderboard_stats;
 use crate::util::dates;
@@ -14,20 +14,27 @@ pub async fn leaderboard(
     ctx: Context<'_>,
     #[description = "The duration for the leaderboard"] duration: Duration,
 ) -> Result<(), Error> {
-    let mut conn = database_access::get_new_connection().await?;
-    let db = database_access::get_sea_orm_connection()?;
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
-        return Ok(());
-    }
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    leaderboard_command(&cmd_ctx, duration).await?;
+    cmd_ctx.txn.commit().await?;
+    Ok(())
+}
 
+pub async fn leaderboard_command(
+    cmd_ctx: &CommandCtx<'_>,
+    duration: Duration,
+) -> Result<(), Error> {
     let end_utc = Utc::now();
     let start_utc = duration.start_date(end_utc);
-    let players = player_servers_db::query_server_players(db, Some(guild_id)).await?;
+    let players =
+        player_servers_db::query_server_players(&cmd_ctx.txn, Some(cmd_ctx.guild_id)).await?;
     if players.is_empty() {
-        info!(guild_id = ?guild_id, "No players registered on server - cannot generate leaderboard");
+        info!(
+            guild_id = cmd_ctx.guild_id,
+            "No players registered on server - cannot generate leaderboard"
+        );
         discord_helper::private_reply(
-            &ctx,
+            &cmd_ctx,
             "No players are registered for this server, so a leaderboard cannot be generated."
                 .to_string(),
         )
@@ -49,7 +56,7 @@ pub async fn leaderboard(
     .await?;
 
     let leaderboard_messages = leaderboard_stats::get_leaderboard_messages(
-        &mut conn,
+        &cmd_ctx.txn,
         players,
         &start_utc,
         &end_utc,

@@ -9,9 +9,8 @@ pub async fn subscribe_channel(
     ctx: Context<'_>,
     #[description = "The channel ID to subscribe"] channel_id: String,
 ) -> Result<(), Error> {
-    let mut conn = database_access::get_new_connection().await?;
     let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
 
@@ -19,7 +18,8 @@ pub async fn subscribe_channel(
         Error::from("Invalid channel ID format. Please provide a valid numeric channel ID.")
     })?;
 
-    servers_db::update_server_channel(&mut conn, guild_id, channel_id_parsed).await?;
+    let db = database_access::get_connection()?;
+    servers_db::update_server_channel(db, guild_id, channel_id_parsed).await?;
 
     info!(
         guild_id = guild_id,
@@ -38,18 +38,18 @@ pub async fn subscribe_channel(
 
 #[poise::command(slash_command, guild_only)]
 pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
-    let mut conn = database_access::get_new_connection().await?;
     let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
 
-    let server = servers_db::query_server_by_id(&mut conn, guild_id)
+    let db = database_access::get_connection()?;
+    let server = servers_db::query_server_by_id(db, guild_id)
         .await?
         .ok_or(Error::from("Server not found in database"))?;
 
     let new_state = server.is_sub_week == 0;
-    servers_db::update_server_sub_week(&mut conn, guild_id, new_state).await?;
+    servers_db::update_server_sub_week(db, guild_id, new_state).await?;
 
     info!(
         guild_id = guild_id,
@@ -58,9 +58,9 @@ pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
     );
 
     let message = if new_state {
-        "Weekly leaderboard subscription **enabled**"
+        "Weekly leaderboard subscription `Enabled`"
     } else {
-        "Weekly leaderboard subscription **disabled**"
+        "Weekly leaderboard subscription `Disabled`"
     };
 
     discord_helper::public_reply(&ctx, message.to_string()).await?;
@@ -70,18 +70,18 @@ pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
 
 #[poise::command(slash_command, guild_only)]
 pub async fn subscribe_month(ctx: Context<'_>) -> Result<(), Error> {
-    let mut conn = database_access::get_new_connection().await?;
     let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
 
-    let server = servers_db::query_server_by_id(&mut conn, guild_id)
+    let db = database_access::get_connection()?;
+    let server = servers_db::query_server_by_id(db, guild_id)
         .await?
         .ok_or(Error::from("Server not found in database"))?;
 
     let new_state = server.is_sub_month == 0;
-    servers_db::update_server_sub_month(&mut conn, guild_id, new_state).await?;
+    servers_db::update_server_sub_month(db, guild_id, new_state).await?;
 
     info!(
         guild_id = guild_id,

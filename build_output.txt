@@ -1,0 +1,42 @@
+   Compiling dotacord v0.0.0 (D:\dev\rust\dotacord)
+error[E0425]: cannot find function `get_sea_orm_connection` in module `database_access`
+   --> src\scheduler\leaderboard_task.rs:112:31
+    |
+112 |     let db = database_access::get_sea_orm_connection()?;
+    |                               ^^^^^^^^^^^^^^^^^^^^^^ not found in `database_access`
+
+warning: unused import: `tracing::debug`
+ --> src\database\player_matches_db.rs:2:5
+  |
+2 | use tracing::debug;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `error`
+ --> src\scheduler\heartbeat_task.rs:1:15
+  |
+1 | use tracing::{error, info};
+  |               ^^^^^
+
+warning: unused import: `std::time::Duration`
+ --> src\scheduler\heartbeat_task.rs:3:5
+  |
+3 | use std::time::Duration;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::time`
+ --> src\scheduler\heartbeat_task.rs:4:5
+  |
+4 | use tokio::time;
+  |     ^^^^^^^^^^^
+
+warning: unused import: `config::SchedulerConfig`
+ --> src\scheduler\heartbeat_task.rs:6:13
+  |
+6 | use crate::{config::SchedulerConfig, Error};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0425`.
+warning: `dotacord` (bin "dotacord") generated 5 warnings
+error: could not compile `dotacord` (bin "dotacord") due to 1 previous error; 5 warnings emitted

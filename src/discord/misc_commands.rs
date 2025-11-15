@@ -1,7 +1,7 @@
 use rand::Rng;
 use tracing::info;
 
-use crate::database::{database_access, hero_cache};
+use crate::database::hero_cache;
 use crate::discord::discord_helper;
 use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
@@ -9,8 +9,7 @@ use crate::{Context, Error};
 #[poise::command(slash_command, prefix_command)]
 pub async fn random_hero(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = discord_helper::guild_id(&ctx)?;
-    let mut conn = database_access::get_new_connection().await?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
     info!("Selecting random hero from cache");
@@ -26,8 +25,7 @@ pub async fn roll(
     #[description = "Maximum Number (default: 100)"] max: Option<i32>,
 ) -> Result<(), Error> {
     let guild_id = discord_helper::guild_id(&ctx)?;
-    let mut conn = database_access::get_new_connection().await?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
     let max = max.unwrap_or(100);

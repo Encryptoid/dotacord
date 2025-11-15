@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use super::player_matches_db::PlayerMatch;
+use super::player_matches_db::PlayerMatchModel;
 
-fn get_most_played_hero(matches: &[PlayerMatch]) -> Option<i32> {
+fn get_most_played_hero(matches: &[PlayerMatchModel]) -> Option<i32> {
     matches
         .iter()
         .fold(HashMap::new(), |mut acc, m| {

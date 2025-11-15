@@ -5,20 +5,22 @@ use super::discord_helper;
 use crate::api::open_dota_links;
 use crate::database::player_servers_db::PlayerServerModel;
 use crate::database::{database_access, player_servers_db, players_db, servers_db};
+use crate::discord::discord_helper::get_command_ctx;
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::{Context, Error};
 
 // default_member_permissions = Permissions::ADMINISTRATOR;
 #[poise::command(slash_command, guild_only)]
 pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
-    let mut conn = database_access::get_new_connection().await?;
-    let db = database_access::get_sea_orm_connection()?;
+    let cmd_ctx = get_command_ctx(&ctx)?;
     let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
 
-    let player_servers = player_servers_db::query_server_players(db, Some(guild_id)).await?;
+    let player_servers =
+        player_servers_db::query_server_players(&cmd_ctx.txn, Some(guild_id)).await?;
+
     let member = ctx
         .author_member()
         .await
@@ -44,11 +46,10 @@ pub async fn add_player(
     #[description = "Name for the player to add to this server"] name: String,
     #[description = "Dota Player Id(taken from OpenDota/Dotabuff)"] player_id: i64,
 ) -> Result<(), Error> {
-    let mut conn = database_access::get_new_connection().await?;
-    let db = database_access::get_sea_orm_connection()?;
+    let db = database_access::get_connection()?;
     let guild_id = discord_helper::guild_id(&ctx)?;
     let server_name = discord_helper::guild_name(&ctx)?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
 
@@ -75,7 +76,7 @@ pub async fn add_player(
         return Ok(());
     }
 
-    players_db::try_add_player(&mut conn, player_id).await?;
+    players_db::try_add_player(db, player_id).await?;
 
     info!("Inserting: {name} to Player Server: {server_name} (ID: {guild_id})");
     player_servers_db::insert_player_server(db, guild_id, player_id, &name).await?;
@@ -93,11 +94,9 @@ pub async fn remove_player(
     #[description = "The Discord user"] discord_user: User,
 ) -> Result<(), Error> {
     let guild_id = discord_helper::guild_id(&ctx)?;
-    let server_name = discord_helper::guild_name(&ctx)?;
-    let mut conn = database_access::get_new_connection().await?;
-    let db = database_access::get_sea_orm_connection()?;
+    let db = database_access::get_connection()?;
 
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
 
@@ -126,9 +125,8 @@ pub async fn rename_player(
 ) -> Result<(), Error> {
     let guild_id = discord_helper::guild_id(&ctx)?;
     let server_name = discord_helper::guild_name(&ctx)?;
-    let mut conn = database_access::get_new_connection().await?;
-    let db = database_access::get_sea_orm_connection()?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
+    let db = database_access::get_connection()?;
+    if !discord_helper::validate_command(&ctx, guild_id).await? {
         return Ok(());
     }
 
@@ -171,8 +169,8 @@ pub async fn register_server(
     };
     let server_name = discord_helper::guild_name(&ctx)?;
 
-    let mut conn = database_access::get_new_connection().await?;
-    match servers_db::query_server_by_id(&mut conn, guild_id).await? {
+    let db = database_access::get_connection()?;
+    match servers_db::query_server_by_id(db, guild_id).await? {
         Some(_) => {
             discord_helper::private_reply(
                 &ctx,
@@ -183,7 +181,7 @@ pub async fn register_server(
         }
         None => {
             info!("Registering Server: {server_name} (ID: {guild_id})");
-            servers_db::insert_server(&mut conn, guild_id, server_name, None).await?;
+            servers_db::insert_server(db, guild_id, server_name, None).await?;
             discord_helper::private_reply(
                 &ctx,
                 format!("Server has been registered as a Dotacord server."),

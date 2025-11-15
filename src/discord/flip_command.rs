@@ -1,7 +1,6 @@
 use rand::Rng;
 use tracing::info;
 
-use crate::database::database_access;
 use crate::discord::discord_helper;
 use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
@@ -12,11 +11,7 @@ pub async fn flip(
     choice1: Option<String>,
     choice2: Option<String>,
 ) -> Result<(), Error> {
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    let mut conn = database_access::get_new_connection().await?;
-    if !discord_helper::validate_command(&ctx, &mut conn, guild_id).await? {
-        return Ok(());
-    }
+    let _cmd_ctx = discord_helper::get_command_ctx(&ctx).await?;
     info!("Starting coin flip");
 
     let (heads_choice, tails_choice) = assign_coin_sides(choice1, choice2);
@@ -37,7 +32,6 @@ pub async fn flip(
         "Coin flip result"
     );
 
-    // Append final result
     let final_content = format!(
         "{} **{}** has been chosen! {}",
         Emoji::AEGIS2015,
