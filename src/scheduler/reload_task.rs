@@ -1,8 +1,8 @@
 use chrono::{Local, Timelike};
 use tracing::info;
 
-use crate::api::reload;
-use crate::database::{database_access, player_servers_db};
+use crate::api::api_wrapper::{self, ReloadPlayerStat};
+use crate::database::{player_servers_db, servers_db};
 use crate::scheduler::SchedulerContext;
 use crate::Error;
 
@@ -13,30 +13,33 @@ pub async fn auto_reload(ctx: &SchedulerContext) -> Result<(), Error> {
     }
 
     info!("Starting auto-reload of player matches");
-    let txn = database_access::get_transaction().await?;
-    let players = player_servers_db::query_server_players(&txn, None).await?;
+    let servers = servers_db::query_all_servers().await?;
+    for server in servers {
+        info!(server_id = server.server_id, "Reloading players for server");
+        let players = player_servers_db::query_server_players(server.server_id).await?;
 
-    if players.is_empty() {
-        info!("No players registered, skipping auto-reload");
-        return Ok(());
+        if players.is_empty() {
+            info!("No players registered, skipping auto-reload");
+            return Ok(());
+        }
+
+        let stats = reload_all_players(players).await;
+
+        let success_count = stats
+            .iter()
+            .filter(|s| matches!(s.result, Ok(Some(_))))
+            .count();
+        let failure_count = stats.iter().filter(|s| s.result.is_err()).count();
+        let removed_count = stats
+            .iter()
+            .filter(|s| matches!(s.result, Ok(None)))
+            .count();
+
+        info!(
+            success_count,
+            failure_count, removed_count, server.server_name, "Completed auto-reload for server"
+        );
     }
-
-    let stats = reload::reload_all_players(&txn, players).await;
-
-    let success_count = stats
-        .iter()
-        .filter(|s| matches!(s.result, Ok(Some(_))))
-        .count();
-    let failure_count = stats.iter().filter(|s| s.result.is_err()).count();
-    let removed_count = stats
-        .iter()
-        .filter(|s| matches!(s.result, Ok(None)))
-        .count();
-
-    info!(
-        success_count,
-        failure_count, removed_count, "Completed auto-reload"
-    );
 
     Ok(())
 }
@@ -64,4 +67,17 @@ fn is_in_reload_window(ctx: &SchedulerContext) -> bool {
     }
 
     is_in_window
+}
+
+async fn reload_all_players(
+    players: Vec<player_servers_db::PlayerServerModel>,
+) -> Vec<ReloadPlayerStat> {
+    let mut stats = Vec::new();
+
+    for player in players {
+        let stat = api_wrapper::reload_player(&player).await;
+        stats.push(stat);
+    }
+
+    stats
 }

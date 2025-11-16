@@ -1,8 +1,7 @@
-use sea_orm::DatabaseTransaction;
 use tracing::info;
 
 use crate::api::open_dota_api;
-use crate::database::{player_matches_db, player_servers_db};
+use crate::database::{database_access, player_matches_db, player_servers_db};
 use crate::Error;
 
 pub struct ReloadPlayerStat {
@@ -11,16 +10,18 @@ pub struct ReloadPlayerStat {
     pub result: Result<Option<usize>, String>,
 }
 
-#[tracing::instrument(level = "trace", skip(txn))]
-pub async fn reload_player(
-    txn: &DatabaseTransaction,
-    player: &player_servers_db::PlayerServerModel,
-) -> ReloadPlayerStat {
+pub enum ReloadType {
+    Schedule,
+    Manual,
+}
+
+/// Reloads matches for a given player from the OpenDota API and inserts any new matches into the database.
+#[tracing::instrument(level = "trace")]
+pub async fn reload_player(player: &player_servers_db::PlayerServerModel) -> ReloadPlayerStat {
     info!(player_id = player.player_id, "Reloading matches for player");
 
     let result = async {
-        let db_matches =
-            player_matches_db::query_matches_by_player_id(txn, player.player_id).await?;
+        let db_matches = player_matches_db::query_matches_by_player_id(player.player_id).await?;
         let api_matches = open_dota_api::get_player_matches(player.player_id).await?;
 
         info!(
@@ -39,8 +40,7 @@ pub async fn reload_player(
             return Ok(None);
         }
 
-        let match_count =
-            import_new_matches(txn, player.player_id, &db_matches, &api_matches).await?;
+        let match_count = insert_new_matches(player.player_id, &db_matches, &api_matches).await?;
 
         info!(
             player_id = player.player_id,
@@ -60,14 +60,14 @@ pub async fn reload_player(
     }
 }
 
-#[tracing::instrument(level = "trace", skip(db, db_matches, api_matches))]
-async fn import_new_matches(
-    db: &DatabaseTransaction,
+#[tracing::instrument(level = "trace", skip(db_matches, api_matches))]
+async fn insert_new_matches(
     player_id: i64,
     db_matches: &[player_matches_db::PlayerMatchModel],
     api_matches: &[open_dota_api::ApiPlayerMatch],
 ) -> Result<usize, Error> {
     let mut player_match_count = 0;
+    let txn = database_access::get_transaction().await?;
 
     for api_match in api_matches {
         if db_matches.iter().any(|m| m.match_id == api_match.match_id) {
@@ -79,23 +79,10 @@ async fn import_new_matches(
             continue;
         };
 
-        player_matches_db::insert_player_match(db, player_match).await?;
+        player_matches_db::insert_player_match(&txn, player_match).await?;
         player_match_count += 1;
     }
 
+    txn.commit().await?;
     Ok(player_match_count)
-}
-
-pub async fn reload_all_players(
-    db: &DatabaseTransaction,
-    players: Vec<player_servers_db::PlayerServerModel>,
-) -> Vec<ReloadPlayerStat> {
-    let mut stats = Vec::new();
-
-    for player in players {
-        let stat = reload_player(db, &player).await;
-        stats.push(stat);
-    }
-
-    stats
 }

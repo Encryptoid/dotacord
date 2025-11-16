@@ -1,3 +1,4 @@
+use crate::fmt;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::Column;
 
@@ -63,7 +64,7 @@ impl TableBuilder {
             .zip(&widths)
             .map(|(col, &width)| col.format_header(width))
             .collect();
-        let header_row = format!("| {} |", header_cells.join(" | "));
+        let header_row = fmt!("| {} |", header_cells.join(" | "));
         section.add_line(header_row);
 
         // Build data rows
@@ -74,7 +75,7 @@ impl TableBuilder {
                 .zip(&widths)
                 .map(|(col, &width)| col.format_cell(row_index, width))
                 .collect();
-            let row_str = format!("| {} |", cells.join(" | "));
+            let row_str = fmt!("| {} |", cells.join(" | "));
             section.add_line(row_str);
         }
     }

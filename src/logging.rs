@@ -11,6 +11,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
 
 use crate::config::AppConfig;
+use crate::fmt;
 
 pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let timer = tracing_subscriber::fmt::time::OffsetTime::local_rfc_3339()
@@ -112,7 +113,7 @@ impl SeqVisitor {
 impl Visit for SeqVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
         self.fields
-            .insert(field.name().to_string(), json!(format!("{:?}", value)));
+            .insert(field.name().to_string(), json!(fmt!("{:?}", value)));
     }
 
     fn record_str(&mut self, field: &Field, value: &str) {
@@ -154,7 +155,7 @@ impl<S: Subscriber> Layer<S> for SeqLayer {
             .fields
             .remove("message")
             .and_then(|v| v.as_str().map(String::from))
-            .unwrap_or_else(|| format!("{}", metadata.name()));
+            .unwrap_or_else(|| fmt!("{}", metadata.name()));
 
         let mut payload = json!({
             "@t": chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Micros, true),

@@ -4,6 +4,7 @@ use crate::database::hero_cache;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::util::dates::format_section_timestamp;
+use crate::{fmt, str};
 
 pub fn build_winrate_section(
     duration_label: &str,
@@ -31,9 +32,11 @@ pub fn build_winrate_section(
     let winner = sorted_stats.first()?;
     let (winner_wins, winner_total) = selector(winner);
     let win_rate = (winner_wins as f64 / winner_total as f64) * 100.0;
-    let title = format!(
+    let title = fmt!(
         "[{duration_label}] - {left_emoji} {title_text} {right_emoji} - __*{}*__ - {:.0}% {}",
-        winner.player_name, win_rate, win_rate_label
+        winner.player_name,
+        win_rate,
+        win_rate_label
     );
 
     let mut builder = TableBuilder::new(title);
@@ -48,7 +51,7 @@ pub fn build_winrate_section(
         builder
             .add_column(Text::new(
                 "Player",
-                sorted_stats.iter().map(|s| s.player_name.clone()).collect(),
+                sorted_stats.iter().map(|s| str!(s.player_name)).collect(),
             ))
             .add_column(Text::new(
                 "Win%",
@@ -58,9 +61,9 @@ pub fn build_winrate_section(
                         let (wins, total) = selector(s);
                         if total > 0 {
                             let win_rate = (wins as f64 / total as f64) * 100.0;
-                            format!("{:>3.0}%", win_rate)
+                            fmt!("{:>3.0}%", win_rate)
                         } else {
-                            "-".to_string()
+                            str!("-")
                         }
                     })
                     .collect(),
@@ -70,12 +73,8 @@ pub fn build_winrate_section(
                 sorted_stats
                     .iter()
                     .map(|s| {
-                        let (wins, total) = selector(s);
-                        if total > 0 {
-                            wins.to_string()
-                        } else {
-                            "-".to_string()
-                        }
+                        let (wins, _) = selector(s);
+                        str!(wins)
                     })
                     .collect(),
             ))
@@ -85,11 +84,7 @@ pub fn build_winrate_section(
                     .iter()
                     .map(|s| {
                         let (_, total) = selector(s);
-                        if total > 0 {
-                            total.to_string()
-                        } else {
-                            total.to_string()
-                        }
+                        str!(total)
                     })
                     .collect(),
             ))
@@ -107,12 +102,14 @@ pub fn build_hero_spam_section(
 ) -> Option<LeaderboardSection> {
     let mut sorted_stats: Vec<_> = all_stats
         .iter()
-        .filter(|s| s.hero_pick_stat.matches > 0)
+        .filter(|s| s.hero_pick_stat.stats.total_matches > 0)
         .collect();
 
     sorted_stats.sort_by(|a, b| {
-        let a_rate = a.hero_pick_stat.matches as f64 / a.overall_stats.total_matches as f64;
-        let b_rate = b.hero_pick_stat.matches as f64 / b.overall_stats.total_matches as f64;
+        let a_rate =
+            a.hero_pick_stat.stats.total_matches as f64 / a.overall_stats.total_matches as f64;
+        let b_rate =
+            b.hero_pick_stat.stats.total_matches as f64 / b.overall_stats.total_matches as f64;
         b_rate
             .partial_cmp(&a_rate)
             .unwrap_or(std::cmp::Ordering::Equal)
@@ -120,13 +117,17 @@ pub fn build_hero_spam_section(
     });
 
     let winner = sorted_stats.first()?;
-    let pick_rate =
-        (winner.hero_pick_stat.matches as f64 / winner.overall_stats.total_matches as f64) * 100.0;
+    let pick_rate = (winner.hero_pick_stat.stats.total_matches as f64
+        / winner.overall_stats.total_matches as f64)
+        * 100.0;
     let hero_name =
         hero_cache::get_hero_by_id(winner.hero_pick_stat.hero_id).unwrap_or("Unknown Hero");
-    let title = format!(
+    let title = fmt!(
         "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {:.0}% {} ({})",
-        winner.player_name, pick_rate, "Hero Pick Rate", hero_name
+        winner.player_name,
+        pick_rate,
+        "Hero Pick Rate",
+        hero_name
     );
 
     let mut builder = TableBuilder::new(title);
@@ -141,16 +142,15 @@ pub fn build_hero_spam_section(
         builder
             .add_column(Text::new(
                 "Player",
-                sorted_stats.iter().map(|s| s.player_name.clone()).collect(),
+                sorted_stats.iter().map(|s| str!(s.player_name)).collect(),
             ))
             .add_column(Text::new(
                 "Hero",
                 sorted_stats
                     .iter()
                     .map(|s| {
-                        hero_cache::get_hero_by_id(s.hero_pick_stat.hero_id)
-                            .unwrap_or("Unknown Hero")
-                            .to_string()
+                        str!(hero_cache::get_hero_by_id(s.hero_pick_stat.hero_id)
+                            .unwrap_or("Unknown Hero"))
                     })
                     .collect(),
             ))
@@ -158,14 +158,14 @@ pub fn build_hero_spam_section(
                 "Count",
                 sorted_stats
                     .iter()
-                    .map(|s| s.hero_pick_stat.matches.to_string())
+                    .map(|s| str!(s.hero_pick_stat.stats.total_matches))
                     .collect(),
             ))
             .add_column(Text::new(
                 "Matches",
                 sorted_stats
                     .iter()
-                    .map(|s| s.overall_stats.total_matches.to_string())
+                    .map(|s| str!(s.overall_stats.total_matches))
                     .collect(),
             ))
             .add_column(Text::new(
@@ -173,10 +173,10 @@ pub fn build_hero_spam_section(
                 sorted_stats
                     .iter()
                     .map(|s| {
-                        let percentage = (s.hero_pick_stat.matches as f32
+                        let percentage = (s.hero_pick_stat.stats.total_matches as f32
                             / s.overall_stats.total_matches as f32)
                             * 100.0;
-                        format!("{:>3.0}%", percentage)
+                        fmt!("{:>3.0}%", percentage)
                     })
                     .collect(),
             ))
@@ -207,42 +207,40 @@ pub fn build_single_match_stat_section(
     let winner = sorted_stats.first()?;
     let winner_stat = selector(winner);
     let hero_name = hero_cache::get_hero_by_id(winner_stat.hero_id).unwrap_or("Unknown Hero");
-    let title = format!(
+    let title = fmt!(
         "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {} {} ({})",
-        winner.player_name, winner_stat.value, stat_name, hero_name
+        winner.player_name,
+        winner_stat.value,
+        stat_name,
+        hero_name
     );
 
-    let player_column: Vec<String> = sorted_stats.iter().map(|s| s.player_name.clone()).collect();
+    let player_column: Vec<String> = sorted_stats.iter().map(|s| str!(s.player_name)).collect();
     let stat_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| selector(s).value.to_string())
+        .map(|s| str!(selector(s).value))
         .collect();
     let hero_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| {
-            hero_cache::get_hero_by_id(selector(s).hero_id)
-                .unwrap_or("Unknown Hero")
-                .to_string()
-        })
+        .map(|s| str!(hero_cache::get_hero_by_id(selector(s).hero_id).unwrap_or("Unknown Hero")))
         .collect();
     let outcome_column: Vec<String> = sorted_stats
         .iter()
         .map(|s| {
-            if selector(s).is_victory {
+            str!(if selector(s).is_victory {
                 "Win"
             } else {
                 "Loss"
-            }
-            .to_string()
+            })
         })
         .collect();
     let average_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| format!("{:.2}", selector(s).average))
+        .map(|s| fmt!("{:.2}", selector(s).average))
         .collect();
     let total_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| selector(s).total.to_string())
+        .map(|s| str!(selector(s).total))
         .collect();
     let date_column: Vec<String> = sorted_stats
         .iter()
@@ -280,9 +278,9 @@ fn format_duration(seconds: i32) -> String {
     let hours = seconds / 3600;
     let minutes = (seconds % 3600) / 60;
     if hours > 0 {
-        format!("{}h {:02}m", hours, minutes)
+        fmt!("{}h {:02}m", hours, minutes)
     } else {
-        format!("{}m", minutes)
+        fmt!("{}m", minutes)
     }
 }
 
@@ -312,12 +310,18 @@ pub fn build_longest_match_section(
     let duration = format_duration(winner.longest_match_stat.value);
     let player_name = winner.player_name.as_str();
 
-    let title = format!(
+    let title = fmt!(
         "[{}] - {} {} {} - __*{}*__ - {} - {}",
-        duration_label, left_emoji, label, right_emoji, player_name, stat_name, duration,
+        duration_label,
+        left_emoji,
+        label,
+        right_emoji,
+        player_name,
+        stat_name,
+        duration,
     );
 
-    let player_column: Vec<String> = sorted_stats.iter().map(|s| s.player_name.clone()).collect();
+    let player_column: Vec<String> = sorted_stats.iter().map(|s| str!(s.player_name)).collect();
     let duration_column: Vec<String> = sorted_stats
         .iter()
         .map(|s| format_duration(s.longest_match_stat.value))
@@ -325,20 +329,17 @@ pub fn build_longest_match_section(
     let hero_column: Vec<String> = sorted_stats
         .iter()
         .map(|s| {
-            hero_cache::get_hero_by_id(s.longest_match_stat.hero_id)
-                .unwrap_or("Unknown Hero")
-                .to_string()
+            str!(hero_cache::get_hero_by_id(s.longest_match_stat.hero_id).unwrap_or("Unknown Hero"))
         })
         .collect();
     let outcome_column: Vec<String> = sorted_stats
         .iter()
         .map(|s| {
-            if s.longest_match_stat.is_victory {
+            str!(if s.longest_match_stat.is_victory {
                 "Win"
             } else {
                 "Loss"
-            }
-            .to_string()
+            })
         })
         .collect();
     let average_column: Vec<String> = sorted_stats

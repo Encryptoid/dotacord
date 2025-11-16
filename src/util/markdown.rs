@@ -20,7 +20,7 @@ impl Section {
 }
 
 pub fn mask_link(url: &str, symbol: &str) -> String {
-    format!("[{}]({})", symbol, url)
+    fmt!("[{}]({})", symbol, url)
 }
 
 // Re-exports are provided via the `markdown` module under `crate::util::markdown`.

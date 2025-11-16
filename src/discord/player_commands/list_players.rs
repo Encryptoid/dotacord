@@ -5,7 +5,7 @@ use crate::database::player_servers_db::PlayerServerModel;
 use crate::database::{database_access, player_servers_db};
 use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
 use crate::markdown::{Link, TableBuilder, Text};
-use crate::{Context, Error};
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, guild_only)]
 pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
@@ -16,7 +16,7 @@ pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
 
 async fn list_players_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
     let txn = database_access::get_transaction().await?;
-    let player_servers = player_servers_db::query_server_players(&txn, Some(ctx.guild_id)).await?;
+    let player_servers = player_servers_db::query_server_players(ctx.guild_id).await?;
     txn.commit().await?;
 
     let member = ctx
@@ -40,10 +40,10 @@ async fn list_players_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
 }
 
 fn format_list_players(players: &Vec<PlayerServerModel>) -> String {
-    let title = format!("{} player(s) registered to this server:", players.len());
+    let title = fmt!("{} player(s) registered to this server:", players.len());
 
     if players.is_empty() {
-        return format!("{}\nNo data available.", title);
+        return fmt!("{}\nNo data available.", title);
     }
 
     let mut sorted_players: Vec<&PlayerServerModel> = players.iter().collect();

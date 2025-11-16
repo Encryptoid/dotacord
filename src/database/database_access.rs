@@ -6,12 +6,12 @@ use sea_orm::{
 };
 use tracing::info;
 
-use crate::Error;
+use crate::{fmt, Error};
 
 static SEA_ORM_CONNECTION: OnceLock<DatabaseConnection> = OnceLock::new();
 
 pub async fn init_database(path: &Path) -> Result<(), Error> {
-    let url = format!("sqlite://{}?mode=rwc", path.display());
+    let url = fmt!("sqlite://{}?mode=rwc", path.display());
 
     let mut opt = ConnectOptions::new(url);
     opt.sqlx_logging(false)

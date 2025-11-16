@@ -1,5 +1,7 @@
 use sea_orm::entity::prelude::*;
 
+use crate::database::types::GameMode;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "player_matches")]
 pub struct Model {
@@ -17,6 +19,7 @@ pub struct Model {
     pub is_victory: bool,
     pub start_time: i64,
     pub duration: i32,
+
     pub game_mode: i32,
     pub lobby_type: i32,
 }

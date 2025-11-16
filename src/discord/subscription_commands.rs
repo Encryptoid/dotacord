@@ -1,8 +1,8 @@
 use tracing::info;
 
 use super::discord_helper::{self, CommandCtx};
-use crate::database::{database_access, servers_db};
-use crate::{Context, Error};
+use crate::database::servers_db;
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, guild_only)]
 pub async fn subscribe_channel(
@@ -19,9 +19,7 @@ async fn subscribe_channel_command(ctx: &CommandCtx<'_>, channel_id: String) -> 
         Error::from("Invalid channel ID format. Please provide a valid numeric channel ID.")
     })?;
 
-    let txn = database_access::get_transaction().await?;
-    servers_db::update_server_channel(&txn, ctx.guild_id, channel_id_parsed).await?;
-    txn.commit().await?;
+    servers_db::update_server_channel(ctx.guild_id, channel_id_parsed).await?;
 
     info!(
         guild_id = ctx.guild_id,
@@ -31,7 +29,7 @@ async fn subscribe_channel_command(ctx: &CommandCtx<'_>, channel_id: String) -> 
 
     discord_helper::public_reply(
         &ctx.discord_ctx,
-        format!("Subscription channel set to <#{}>", channel_id_parsed),
+        fmt!("Subscription channel set to <#{}>", channel_id_parsed),
     )
     .await?;
 
@@ -46,14 +44,12 @@ pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 async fn subscribe_week_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
-    let txn = database_access::get_transaction().await?;
-    let server = servers_db::query_server_by_id(&txn, ctx.guild_id)
+    let server = servers_db::query_server_by_id(ctx.guild_id)
         .await?
         .ok_or(Error::from("Server not found in database"))?;
 
     let new_state = server.is_sub_week == 0;
-    servers_db::update_server_sub_week(&txn, ctx.guild_id, new_state).await?;
-    txn.commit().await?;
+    servers_db::update_server_sub_week(ctx.guild_id, new_state).await?;
 
     info!(
         guild_id = ctx.guild_id,
@@ -80,14 +76,12 @@ pub async fn subscribe_month(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 async fn subscribe_month_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
-    let txn = database_access::get_transaction().await?;
-    let server = servers_db::query_server_by_id(&txn, ctx.guild_id)
+    let server = servers_db::query_server_by_id(ctx.guild_id)
         .await?
         .ok_or(Error::from("Server not found in database"))?;
 
     let new_state = server.is_sub_month == 0;
-    servers_db::update_server_sub_month(&txn, ctx.guild_id, new_state).await?;
-    txn.commit().await?;
+    servers_db::update_server_sub_month(ctx.guild_id, new_state).await?;
 
     info!(
         guild_id = ctx.guild_id,

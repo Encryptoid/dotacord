@@ -4,7 +4,7 @@
 
 - [x] Do not allow adding more than one player
 - [-] default /leaderboard to ephemeral, with optional parameter to make it public.
-- [ ] Ordering before title
+- [x] Ordering before title
 
 ## Coy
 
@@ -25,3 +25,9 @@
 - [ ] SQL Injection protection
 - [ ] Status
 - [ ] Database backup
+
+
+## Scheduling
+
+- [ ] Add database setup
+- [ ] publish jobs

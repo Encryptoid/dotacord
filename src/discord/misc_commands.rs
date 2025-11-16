@@ -4,7 +4,7 @@ use tracing::info;
 use crate::database::hero_cache;
 use crate::discord::discord_helper;
 use crate::leaderboard::emoji::Emoji;
-use crate::{Context, Error};
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn random_hero(ctx: Context<'_>) -> Result<(), Error> {
@@ -12,7 +12,7 @@ pub async fn random_hero(ctx: Context<'_>) -> Result<(), Error> {
     info!("Selecting random hero from cache");
     let hero = hero_cache::get_random_hero();
     info!(hero = hero.as_str(), "Random hero selected");
-    discord_helper::public_reply(&cmd_ctx.discord_ctx, format!("Random Hero: {hero}")).await?;
+    discord_helper::public_reply(&cmd_ctx.discord_ctx, fmt!("Random Hero: {hero}")).await?;
     Ok(())
 }
 
@@ -30,14 +30,13 @@ pub async fn roll(
         return Ok(());
     }
 
-    let base_content = format!("Rolling: `1` -> `{max}`\n\n");
+    let base_content = fmt!("Rolling: `1` -> `{max}`\n\n");
 
     let result = rand::rng().random_range(1..=max);
     info!(max = max, result = result, "Roll command executed");
 
-    let final_content = format!("Rolled: `{result}` {}", Emoji::BOUNTYRUNE);
-    discord_helper::reply_countdown(&cmd_ctx.discord_ctx, &base_content, "", final_content)
-        .await?;
+    let final_content = fmt!("Rolled: `{result}` {}", Emoji::BOUNTYRUNE);
+    discord_helper::reply_countdown(&cmd_ctx.discord_ctx, &base_content, "", final_content).await?;
 
     Ok(())
 }

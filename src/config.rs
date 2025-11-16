@@ -4,6 +4,7 @@ use std::{env, fs};
 use poise::serenity_prelude as serenity;
 use serde::Deserialize;
 
+use crate::fmt;
 use crate::util::dates;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -45,6 +46,7 @@ pub struct SchedulerConfig {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct AppConfig {
     pub database_path: PathBuf,
     pub heroes_path: PathBuf,
@@ -72,7 +74,7 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
     };
 
     if !config_path.exists() || !config_path.is_file() {
-        return Err(format!(
+        return Err(fmt!(
             "Config file does not exist or is not a file: {}",
             config_path.display()
         )
@@ -83,16 +85,16 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
 
     let database_path = PathBuf::from(&cfg.database_path);
     if !database_path.exists() || !database_path.is_file() {
-        return Err(format!("Database file does not exist: {}", &cfg.database_path).into());
+        return Err(fmt!("Database file does not exist: {}", &cfg.database_path).into());
     }
 
     let heroes_path = PathBuf::from(&cfg.heroes_path);
     if !heroes_path.exists() || !heroes_path.is_file() {
-        return Err(format!("Heroes file does not exist: {}", &cfg.heroes_path).into());
+        return Err(fmt!("Heroes file does not exist: {}", &cfg.heroes_path).into());
     }
 
     // let api_key = env::var(&cfg.api_key_var).map_err(|e| {
-    //     format!(
+    //     fmt!(
     //         "Failed to read API key from env var {}: {}",
     //         &cfg.api_key_var, e
     //     )
@@ -102,21 +104,21 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
     let log_path = log_file_replacements(&cfg.log_path)?;
     if let Some(parent) = log_path.parent() {
         if !parent.exists() {
-            return Err(format!("Log file directory does not exist: {}", parent.display()).into());
+            return Err(fmt!("Log file directory does not exist: {}", parent.display()).into());
         }
     }
     if log_path.exists() && !log_path.is_file() {
-        return Err(format!("Log path exists but is not a file: {}", &cfg.log_path).into());
+        return Err(fmt!("Log path exists but is not a file: {}", &cfg.log_path).into());
     }
 
     let log_json_path = log_file_replacements(&cfg.log_json_path)?;
     if let Some(parent) = log_json_path.parent() {
         if !parent.exists() {
-            return Err(format!("Log file directory does not exist: {}", parent.display()).into());
+            return Err(fmt!("Log file directory does not exist: {}", parent.display()).into());
         }
     }
     if log_json_path.exists() && !log_json_path.is_file() {
-        return Err(format!("Log path exists but is not a file: {}", &cfg.log_json_path).into());
+        return Err(fmt!("Log path exists but is not a file: {}", &cfg.log_json_path).into());
     }
 
     Ok(AppConfig {

@@ -1,8 +1,11 @@
 use serde::Deserialize;
 use tracing::info;
 
+use crate::fmt;
+
 const BASE_URL: &str = "https://api.opendota.com/api";
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ApiPlayerMatch {
     pub match_id: i64,
@@ -29,7 +32,7 @@ pub struct ApiPlayerMatch {
 pub(crate) async fn get_player_matches(
     player_id: i64,
 ) -> Result<Vec<ApiPlayerMatch>, reqwest::Error> {
-    let url = format!("{BASE_URL}/players/{player_id}/matches");
+    let url = fmt!("{BASE_URL}/players/{player_id}/matches");
     info!(player_id, url, "Fetching API player matches");
     let response = reqwest::Client::new()
         .get(url)

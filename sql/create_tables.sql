@@ -4,7 +4,7 @@ PRAGMA foreign_keys = ON;
 --- PLAYERS
 ---
 
-DROP TABLE IF EXISTS PLAYERS;
+DROP TABLE IF EXISTS players;
 CREATE TABLE IF NOT EXISTS players
 (
     player_id INT PRIMARY KEY NOT NULL
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS players
 --- SERVERS
 ---
 
-DROP TABLE IF EXISTS SERVERS;
+DROP TABLE IF EXISTS servers;
 CREATE TABLE IF NOT EXISTS servers
 (
     server_id     BIGINT PRIMARY KEY NOT NULL,
@@ -95,3 +95,16 @@ INSERT INTO player_matches (
 )
 VALUES (1439386853, 138643094, 80 /* Lone Druid */ , 9, 15, 12, 
 0, 0, 0, 1, 1430526282 /* May 02, 2015 */, 5567, 22, 0)
+
+---
+--- RELOAD_TIMERS
+---
+
+DROP TABLE IF EXISTS reload_timers;
+CREATE TABLE IF NOT EXISTS reload_timers
+(
+    id            INT PRIMARY KEY    NOT NULL,
+    server_id     BIGINT             NOT NULL,
+    reload_time   DATE               NOT NULL,
+    reload_type   TEXT               NOT NULL -- Schedule or User
+);

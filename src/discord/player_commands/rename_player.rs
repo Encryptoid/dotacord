@@ -4,7 +4,7 @@ use tracing::info;
 use super::super::discord_helper;
 use crate::database::{database_access, player_servers_db};
 use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
-use crate::{Context, Error};
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn rename_player(
@@ -47,9 +47,9 @@ async fn rename_player_command(
     txn.commit().await?;
 
     let message = if renamed {
-        format!("Renamed player: {display_name} to {new_name} on this server.")
+        fmt!("Renamed player: {display_name} to {new_name} on this server.")
     } else {
-        format!("Player: {display_name} does not exist on this server.")
+        fmt!("Player: {display_name} does not exist on this server.")
     };
     ctx.private_reply(message).await?;
     Ok(())

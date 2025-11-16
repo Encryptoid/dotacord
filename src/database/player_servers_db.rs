@@ -1,28 +1,26 @@
 use sea_orm::*;
 use tracing::info;
 
+use crate::database::database_access;
 use crate::database::entities::{player_server, PlayerServer};
 use crate::Error;
 
 pub use player_server::Model as PlayerServerModel;
 
-pub async fn query_server_players(
-    txn: &DatabaseTransaction,
-    server_id: Option<i64>,
-) -> Result<Vec<PlayerServerModel>, Error> {
+pub async fn query_server_players(server_id: i64) -> Result<Vec<PlayerServerModel>, Error> {
     info!("Querying player servers from database");
+    let txn = database_access::get_transaction().await?;
 
-    let rows = match server_id {
-        None => PlayerServer::find().all(txn).await?,
-        Some(id) => {
-            PlayerServer::find()
-                .filter(player_server::Column::ServerId.eq(id))
-                .all(txn)
-                .await?
-        }
-    };
+    let rows = PlayerServer::find()
+        .filter(player_server::Column::ServerId.eq(server_id))
+        .all(&txn)
+        .await?;
 
-    info!(Count = rows.len(), "Retrieved server players from database");
+    info!(
+        server_id,
+        count = rows.len(),
+        "Retrieved server players from database"
+    );
     Ok(rows)
 }
 

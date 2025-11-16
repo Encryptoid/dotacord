@@ -3,7 +3,7 @@ use tracing::info;
 
 use crate::discord::discord_helper::{self, CommandCtx};
 use crate::leaderboard::emoji::Emoji;
-use crate::{Context, Error};
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn flip(
@@ -40,30 +40,36 @@ async fn flip_command(
         "Coin flip result"
     );
 
-    let final_content = format!(
+    let final_content = fmt!(
         "{} **{}** has been chosen! {}",
         Emoji::AEGIS2015,
         winner,
         Emoji::AGHS_SCEPTER
     );
-    discord_helper::reply_countdown(&ctx.discord_ctx, &initial_content, "Flipping... ", final_content).await?;
+    discord_helper::reply_countdown(
+        &ctx.discord_ctx,
+        &initial_content,
+        "Flipping... ",
+        final_content,
+    )
+    .await?;
 
     Ok(())
 }
 
 fn create_initial_content(heads_choice: &str, tails_choice: &str) -> String {
-    let mut content = format!(
+    let mut content = fmt!(
         "# {} Aghanim's Amazing Ambuguity Arbiter {}\n\n",
         Emoji::AWOOGA,
         Emoji::APEXMAGE
     );
-    content.push_str(&format!("## {} vs {}\n\n", heads_choice, tails_choice));
+    content.push_str(&fmt!("## {} vs {}\n\n", heads_choice, tails_choice));
     content
 }
 
 fn assign_coin_sides(choice1: Option<String>, choice2: Option<String>) -> (String, String) {
-    let c1 = format!("`{}`", choice1.unwrap_or_else(|| "Heads".to_string()));
-    let c2 = format!("`{}`", choice2.unwrap_or_else(|| "Tails".to_string()));
+    let c1 = fmt!("`{}`", choice1.unwrap_or_else(|| "Heads".to_string()));
+    let c2 = fmt!("`{}`", choice2.unwrap_or_else(|| "Tails".to_string()));
     if rand::rng().random_bool(0.5) {
         (c1, c2)
     } else {

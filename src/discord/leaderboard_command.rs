@@ -2,12 +2,12 @@ use chrono::Utc;
 use poise::CreateReply;
 use tracing::{error, info};
 
-use crate::database::{database_access, player_servers_db};
+use crate::database::player_servers_db;
 use crate::discord::discord_helper::{self, CommandCtx};
 use crate::leaderboard::duration::Duration;
-use crate::leaderboard::leaderboard_stats;
+use crate::leaderboard::leaderboard_stats::get_leaderboard_messages;
 use crate::util::dates;
-use crate::{Context, Error};
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, prefix_command, rename = "dev_leaderboard")]
 pub async fn leaderboard(
@@ -22,8 +22,7 @@ pub async fn leaderboard(
 pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Result<(), Error> {
     let end_utc = Utc::now();
     let start_utc = duration.start_date(end_utc);
-    let txn = database_access::get_transaction().await?;
-    let players = player_servers_db::query_server_players(&txn, Some(ctx.guild_id)).await?;
+    let players = player_servers_db::query_server_players(ctx.guild_id).await?;
     if players.is_empty() {
         error!(
             guild_id = ctx.guild_id,
@@ -39,7 +38,7 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
 
     let duration_label = duration.to_label();
     let reply = &ctx
-        .private_reply(format!(
+        .private_reply(fmt!(
             "Generating Leaderboard for {} [ {} -> {} ]",
             duration_label,
             dates::format_short(start_utc),
@@ -47,17 +46,10 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
         ))
         .await?;
 
-    let leaderboard_messages = leaderboard_stats::get_leaderboard_messages(
-        &txn,
-        players,
-        &start_utc,
-        &end_utc,
-        &duration_label,
-    )
-    .await?;
-    txn.commit().await?;
-    if leaderboard_messages.is_empty() {
-        let content = format!(
+    let messages = get_leaderboard_messages(players, &start_utc, &end_utc, &duration_label).await?;
+
+    if messages.is_empty() {
+        let content = fmt!(
             "No matches found for any players in the duration: {} [ {} -> {} ]",
             duration_label,
             dates::format_short(start_utc),
@@ -72,11 +64,8 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
         return Ok(());
     }
 
-    let section_count = leaderboard_messages.len();
-    let batches = batch_contents(
-        leaderboard_messages,
-        ctx.discord_ctx.data().config.max_message_length,
-    );
+    let section_count = messages.len();
+    let batches = batch_contents(messages, ctx.discord_ctx.data().config.max_message_length);
 
     info!(
         section_count,

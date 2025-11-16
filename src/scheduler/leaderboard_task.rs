@@ -2,7 +2,7 @@ use chrono::{Datelike, Timelike, Utc};
 use poise::serenity_prelude as serenity;
 use tracing::{error, info, warn};
 
-use crate::database::{database_access, player_servers_db, servers_db};
+use crate::database::{player_servers_db, servers_db};
 use crate::leaderboard::duration::Duration;
 use crate::leaderboard::leaderboard_stats;
 use crate::scheduler::SchedulerContext;
@@ -63,8 +63,7 @@ async fn check_monthly_leaderboard(
 async fn publish_leaderboard(ctx: &SchedulerContext, duration: Duration) -> Result<(), Error> {
     info!(duration = ?duration, "Publishing leaderboard");
 
-    let txn = database_access::get_transaction().await?;
-    let servers = servers_db::query_all_servers(&txn).await?;
+    let servers = servers_db::query_all_servers().await?;
 
     if servers.is_empty() {
         info!("No servers registered, skipping leaderboard publication");
@@ -98,9 +97,8 @@ async fn publish_to_server(
     };
 
     let channel = get_channel(&ctx, channel_id_value, &server).await?;
-    
-    let txn = database_access::get_transaction().await?;
-    let players = player_servers_db::query_server_players(&txn, Some(server.server_id)).await?;
+
+    let players = player_servers_db::query_server_players(server.server_id).await?;
 
     if players.is_empty() {
         info!(
@@ -111,7 +109,7 @@ async fn publish_to_server(
         return Ok(());
     }
 
-    let messages = generate_leaderboard_messages(&txn, players, duration, &server).await?;
+    let messages = generate_leaderboard_messages(players, duration, &server).await?;
 
     if messages.is_empty() {
         info!(
@@ -155,7 +153,6 @@ async fn get_channel(
 }
 
 async fn generate_leaderboard_messages(
-    db: &sea_orm::DatabaseTransaction,
     players: Vec<player_servers_db::PlayerServerModel>,
     duration: Duration,
     server: &servers_db::DiscordServer,
@@ -164,7 +161,7 @@ async fn generate_leaderboard_messages(
     let start_utc = duration.start_date(end_utc);
     let duration_label = duration.to_label();
 
-    leaderboard_stats::get_leaderboard_messages(db, players, &start_utc, &end_utc, &duration_label)
+    leaderboard_stats::get_leaderboard_messages(players, &start_utc, &end_utc, &duration_label)
         .await
         .map_err(|e| {
             error!(

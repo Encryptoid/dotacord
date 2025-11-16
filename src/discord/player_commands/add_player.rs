@@ -1,9 +1,6 @@
-use tracing::info;
-
-use super::super::discord_helper;
-use crate::database::{database_access, player_servers_db, players_db};
+use crate::database::{player_servers_db, players_db};
 use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
-use crate::{Context, Error};
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn add_player(
@@ -21,13 +18,10 @@ async fn add_player_command(
     name: String,
     player_id: i64,
 ) -> Result<(), Error> {
-    let server_name = discord_helper::guild_name(&ctx.discord_ctx)?;
-    let txn = database_access::get_transaction().await?;
-    let player_servers =
-        player_servers_db::query_server_players(&txn, Some(ctx.guild_id)).await?;
+    let player_servers = player_servers_db::query_server_players(ctx.guild_id).await?;
 
     if player_servers.len() >= ctx.app_cfg.max_players_per_server {
-        ctx.private_reply(format!(
+        ctx.private_reply(fmt!(
             "Maximum number of players ({}) reached for this server.",
             ctx.app_cfg.max_players_per_server
         ))
@@ -36,19 +30,15 @@ async fn add_player_command(
     }
 
     if player_servers.iter().any(|ps| ps.player_id == player_id) {
-        ctx.private_reply(format!(
+        ctx.private_reply(fmt!(
             "Dota player {name} ({player_id}) is already on this server"
         ))
         .await?;
         return Ok(());
     }
 
-    players_db::try_add_player(&txn, player_id).await?;
-
-    info!("Inserting: {name} to Player Server: {server_name} (ID: {})", ctx.guild_id);
-    player_servers_db::insert_player_server(&txn, ctx.guild_id, player_id, &name).await?;
-    txn.commit().await?;
-    ctx.private_reply(format!(
+    players_db::insert_player_and_server(ctx.guild_id, player_id, &name).await?;
+    ctx.private_reply(fmt!(
         "Player {name} ({player_id}) has been added to this server."
     ))
     .await?;

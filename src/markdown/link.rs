@@ -1,3 +1,5 @@
+use crate::fmt;
+
 pub struct Link {
     text: String,
     urls: Vec<String>,
@@ -6,7 +8,7 @@ pub struct Link {
 pub const LINK_SYMBOL: &str = "@";
 
 pub fn mask_link(url: &str, symbol: &str) -> String {
-    format!("[{}]({})", symbol, url)
+    fmt!("[{}]({})", symbol, url)
 }
 
 impl Link {
@@ -29,18 +31,19 @@ impl crate::markdown::Column for Link {
     }
 
     fn calculate_width(&self) -> usize {
-        // NOTE: Discord renders markdown links [text](url) as just the visible text,
+        // Discord renders markdown links [text](url) as just the visible text,
         // so the rendered width is only text.len(), not the full markdown syntax length.
         self.text.len()
     }
 
     fn format_header(&self, width: usize) -> String {
-        format!("{:<width$}", self.text, width = width)
+        fmt!("{:<width$}", self.text, width = width)
     }
 
     fn format_cell(&self, row_index: usize, width: usize) -> String {
-        // Just use the text for padding - the [](url) syntax isn't rendered by Discord
-        format!(
+        // Just use text(no url formatting) for padding.
+        // The [](url) syntax isn't rendered by Discord.
+        fmt!(
             "{:<width$}",
             mask_link(&self.urls[row_index], &self.text),
             width = width

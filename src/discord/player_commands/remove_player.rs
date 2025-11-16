@@ -2,7 +2,7 @@ use poise::serenity_prelude::User;
 
 use crate::database::{database_access, player_servers_db};
 use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
-use crate::{Context, Error};
+use crate::{fmt, Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn remove_player(
@@ -26,9 +26,9 @@ async fn remove_player_command(ctx: &CommandCtx<'_>, discord_user: User) -> Resu
 
     let display_name = discord_user.display_name();
     let message = if removed {
-        format!("Removed player: {display_name} from this server.")
+        fmt!("Removed player: {display_name} from this server.")
     } else {
-        format!("Player: {display_name} does not exist on this server.")
+        fmt!("Player: {display_name} does not exist on this server.")
     };
     ctx.private_reply(message).await?;
     Ok(())

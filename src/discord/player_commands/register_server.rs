@@ -25,21 +25,20 @@ async fn register_server_command(
     guild_id: i64,
     server_name: String,
 ) -> Result<(), Error> {
-    let txn = database_access::get_transaction().await?;
-    match servers_db::query_server_by_id(&txn, guild_id).await? {
+    match servers_db::query_server_by_id(guild_id).await? {
         Some(_) => {
-            txn.commit().await?;
-            ctx.private_reply(format!(
-                "This server is already registered as a Dotacord server."
-            ))
-            .await?;
+            ctx.private_reply("This server is already registered as a Dotacord server.")
+                .await?;
             Ok(())
         }
         None => {
-            info!("Registering Server: {server_name} (ID: {guild_id})");
+            info!(server_name, guild_id, "Registering new discord server");
+
+            let txn = database_access::get_transaction().await?;
             servers_db::insert_server(&txn, guild_id, server_name, None).await?;
             txn.commit().await?;
-            ctx.private_reply(format!("Server has been registered as a Dotacord server."))
+
+            ctx.private_reply("Server has been registered as a Dotacord server.")
                 .await?;
             Ok(())
         }

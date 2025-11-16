@@ -9,7 +9,10 @@ use poise::serenity_prelude as serenity;
 use tokio::time;
 use tracing::{error, info};
 
-use crate::{config::{AppConfig, SchedulerConfig}, scheduler::heartbeat_task::send_heartbeat};
+use crate::{
+    config::{AppConfig, SchedulerConfig},
+    scheduler::heartbeat_task::send_heartbeat,
+};
 
 pub struct SchedulerContext {
     pub config: AppConfig,
