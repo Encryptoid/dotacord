@@ -8,14 +8,11 @@ use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn random_hero(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, guild_id).await? {
-        return Ok(());
-    }
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
     info!("Selecting random hero from cache");
     let hero = hero_cache::get_random_hero();
     info!(hero = hero.as_str(), "Random hero selected");
-    discord_helper::public_reply(&ctx, format!("Random Hero: {hero}")).await?;
+    discord_helper::public_reply(&cmd_ctx.discord_ctx, format!("Random Hero: {hero}")).await?;
     Ok(())
 }
 
@@ -24,13 +21,12 @@ pub async fn roll(
     ctx: Context<'_>,
     #[description = "Maximum Number (default: 100)"] max: Option<i32>,
 ) -> Result<(), Error> {
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, guild_id).await? {
-        return Ok(());
-    }
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
     let max = max.unwrap_or(100);
     if max < 1 {
-        discord_helper::private_reply(&ctx, "Maximum must be at least 1".to_string()).await?;
+        cmd_ctx
+            .private_reply("Maximum must be at least 1".to_string())
+            .await?;
         return Ok(());
     }
 
@@ -40,7 +36,8 @@ pub async fn roll(
     info!(max = max, result = result, "Roll command executed");
 
     let final_content = format!("Rolled: `{result}` {}", Emoji::BOUNTYRUNE);
-    discord_helper::reply_countdown(&ctx, &base_content, "", final_content).await?;
+    discord_helper::reply_countdown(&cmd_ctx.discord_ctx, &base_content, "", final_content)
+        .await?;
 
     Ok(())
 }

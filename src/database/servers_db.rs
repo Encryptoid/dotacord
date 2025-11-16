@@ -6,7 +6,7 @@ use crate::Error;
 pub use server::Model as DiscordServer;
 
 pub async fn query_server_by_id(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     server_id: i64,
 ) -> Result<Option<DiscordServer>, Error> {
     let server = Server::find_by_id(server_id).one(db).await?;
@@ -14,7 +14,7 @@ pub async fn query_server_by_id(
 }
 
 pub async fn insert_server(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     server_id: i64,
     server_name: String,
     channel_id: Option<i64>,
@@ -31,7 +31,7 @@ pub async fn insert_server(
     Ok(())
 }
 
-pub async fn query_all_servers(db: &DatabaseConnection) -> Result<Vec<DiscordServer>, Error> {
+pub async fn query_all_servers(db: &DatabaseTransaction) -> Result<Vec<DiscordServer>, Error> {
     let servers = Server::find()
         .order_by_asc(server::Column::ServerName)
         .all(db)
@@ -41,7 +41,7 @@ pub async fn query_all_servers(db: &DatabaseConnection) -> Result<Vec<DiscordSer
 }
 
 pub async fn update_server_channel(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     server_id: i64,
     channel_id: i64,
 ) -> Result<(), Error> {
@@ -57,7 +57,7 @@ pub async fn update_server_channel(
 }
 
 pub async fn update_server_sub_week(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     server_id: i64,
     is_sub_week: bool,
 ) -> Result<(), Error> {
@@ -73,7 +73,7 @@ pub async fn update_server_sub_week(
 }
 
 pub async fn update_server_sub_month(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     server_id: i64,
     is_sub_month: bool,
 ) -> Result<(), Error> {

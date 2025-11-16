@@ -1,5 +1,6 @@
 use poise::serenity_prelude::{Channel, CreateMessage, Http, MessageFlags};
 use poise::{CreateReply, ReplyHandle};
+use sea_orm::DatabaseTransaction;
 use tokio::time::Duration;
 use tracing::{debug, info, warn};
 
@@ -8,24 +9,21 @@ use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
 
 const GUILD_LOOKUP_ERROR: &str = "Could not get guild";
-
 pub struct CommandCtx<'a> {
     pub app_cfg: crate::config::AppConfig,
-    pub txn: sea_orm::DatabaseTransaction,
     pub guild_id: i64,
     pub discord_ctx: Context<'a>,
 }
 
-pub(crate) async fn get_command_ctx<'a>(ctx: Context<'a>) -> Result<CommandCtx, Error> {
+pub(crate) async fn get_command_ctx<'a>(ctx: Context<'a>) -> Result<CommandCtx<'a>, Error> {
     let data = ctx.data();
     let txn = database_access::get_transaction().await?;
     let guild_id = guild_id(&ctx)?;
-    if !validate_command(&ctx, guild_id).await? {
+    if !validate_command(&ctx, &txn, guild_id).await? {
         return Err(Error::from("Command validation failed"));
     }
     Ok(CommandCtx {
         app_cfg: data.config.clone(),
-        txn,
         guild_id,
         discord_ctx: ctx,
     })
@@ -45,7 +43,7 @@ pub(crate) fn channel_id(ctx: &Context<'_>) -> Result<i64, Error> {
     Ok(ctx.channel_id().get() as i64)
 }
 
-pub(crate) async fn validate_command(ctx: &Context<'_>, guild_id: i64) -> Result<bool, Error> {
+pub(crate) async fn validate_command(ctx: &Context<'_>, txn: &DatabaseTransaction, guild_id: i64) -> Result<bool, Error> {
     let author = ctx
         .author_member()
         .await
@@ -62,7 +60,7 @@ pub(crate) async fn validate_command(ctx: &Context<'_>, guild_id: i64) -> Result
         "Command Invoked"
     );
 
-    if !validate_server(guild_id).await? {
+    if !validate_server(&txn, guild_id).await? {
         warn!(
             guild_id = guild_id,
             "Command invoked in unregistered server"
@@ -73,8 +71,8 @@ pub(crate) async fn validate_command(ctx: &Context<'_>, guild_id: i64) -> Result
     Ok(true)
 }
 
-async fn validate_server(guild_id: i64) -> Result<bool, Error> {
-    match servers_db::query_server_by_id(db, guild_id).await? {
+async fn validate_server(txn: &DatabaseTransaction, guild_id: i64) -> Result<bool, Error> {
+    match servers_db::query_server_by_id(txn, guild_id).await? {
         Some(_) => Ok(true),
         _ => {
             warn!(
@@ -101,9 +99,13 @@ pub(crate) async fn public_reply<'a>(
         .await?)
 }
 
-impl CommandCtx<'_> {
-    pub async fn private_reply(&self, content: String) -> Result<ReplyHandle<'_>, Error> {
-        debug!(content = content, "Sending reply to user");
+impl<'a> CommandCtx<'a> {
+    pub(crate) async fn private_reply<S>(&self, content: S) -> Result<ReplyHandle<'_>, Error>
+    where
+        S: Into<String>,
+    {
+        let content = content.into();
+        debug!(content, "Sending reply to user");
         Ok(self
             .discord_ctx
             .send(

@@ -2,33 +2,33 @@ use poise::ReplyHandle;
 
 use crate::api::reload;
 use crate::database::{database_access, player_servers_db};
-use crate::discord::discord_helper;
+use crate::discord::discord_helper::{self, CommandCtx};
 use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 #[tracing::instrument(name = "RELOAD_MATCHES", level = "trace", skip(ctx))]
 pub async fn reload_matches(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    let db = database_access::get_transaction().await?;
-    if !discord_helper::validate_command(&ctx, guild_id).await? {
-        return Ok(());
-    }
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    reload_matches_command(&cmd_ctx).await?;
+    Ok(())
+}
 
-    let players = player_servers_db::query_server_players(&db, Some(guild_id)).await?;
+async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let players = player_servers_db::query_server_players(&txn, Some(ctx.guild_id)).await?;
     if players.is_empty() {
-        ctx.say("No players found for this server").await?;
+        ctx.discord_ctx.say("No players found for this server").await?;
         return Ok(());
     }
 
-    // Don't say ephemeral so that other people can see that a reload has happened
-    let reply = ctx
+    let reply = ctx.discord_ctx
         .say(format!(
             "Reloading player matches for {} players. Message will be edited with progress updates.\n",
             players.len()
         ))
         .await?;
     for player in &players {
-        let stat = reload::reload_player(db, player).await;
+        let stat = reload::reload_player(&txn, player).await;
         match stat.result {
             Ok(Some(count)) => {
                 add_to_reply(
@@ -60,19 +60,20 @@ pub async fn reload_matches(ctx: Context<'_>) -> Result<(), Error> {
             }
         }
     }
+    txn.commit().await?;
 
     Ok(())
 }
 
 async fn add_to_reply(
-    ctx: Context<'_>,
+    ctx: &CommandCtx<'_>,
     reply: &ReplyHandle<'_>,
     append_text: &str,
 ) -> Result<(), Error> {
     let message = reply.message().await?;
     let new_content = format!("{}\n{}", message.content, append_text);
     reply
-        .edit(ctx, poise::CreateReply::default().content(new_content))
+        .edit(ctx.discord_ctx, poise::CreateReply::default().content(new_content))
         .await
         .ok();
     Ok(())

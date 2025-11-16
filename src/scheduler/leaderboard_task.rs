@@ -63,8 +63,8 @@ async fn check_monthly_leaderboard(
 async fn publish_leaderboard(ctx: &SchedulerContext, duration: Duration) -> Result<(), Error> {
     info!(duration = ?duration, "Publishing leaderboard");
 
-    let db = database_access::get_connection()?;
-    let servers = servers_db::query_all_servers(db).await?;
+    let txn = database_access::get_transaction().await?;
+    let servers = servers_db::query_all_servers(&txn).await?;
 
     if servers.is_empty() {
         info!("No servers registered, skipping leaderboard publication");
@@ -98,7 +98,9 @@ async fn publish_to_server(
     };
 
     let channel = get_channel(&ctx, channel_id_value, &server).await?;
-    let players = get_server_players(&server).await?;
+    
+    let txn = database_access::get_transaction().await?;
+    let players = player_servers_db::query_server_players(&txn, Some(server.server_id)).await?;
 
     if players.is_empty() {
         info!(
@@ -109,8 +111,7 @@ async fn publish_to_server(
         return Ok(());
     }
 
-    let db = database_access::get_connection()?;
-    let messages = generate_leaderboard_messages(db, players, duration, &server).await?;
+    let messages = generate_leaderboard_messages(&txn, players, duration, &server).await?;
 
     if messages.is_empty() {
         info!(
@@ -153,15 +154,8 @@ async fn get_channel(
     })
 }
 
-async fn get_server_players(
-    server: &servers_db::DiscordServer,
-) -> Result<Vec<player_servers_db::PlayerServerModel>, Error> {
-    let db = database_access::get_connection()?;
-    player_servers_db::query_server_players(db, Some(server.server_id)).await
-}
-
 async fn generate_leaderboard_messages(
-    db: &sea_orm::DatabaseConnection,
+    db: &sea_orm::DatabaseTransaction,
     players: Vec<player_servers_db::PlayerServerModel>,
     duration: Duration,
     server: &servers_db::DiscordServer,

@@ -121,7 +121,7 @@ pub(crate) fn map_to_player_match(
 }
 
 pub async fn insert_player_match(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     player_match: player_match::Model,
 ) -> Result<(), Error> {
     let active_model: player_match::ActiveModel = player_match.into();
@@ -130,7 +130,7 @@ pub async fn insert_player_match(
 }
 
 pub async fn query_matches_by_player_id(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     player_id: i64,
 ) -> Result<Vec<player_match::Model>, Error> {
     let rows = PlayerMatch::find()
@@ -142,7 +142,7 @@ pub async fn query_matches_by_player_id(
 }
 
 pub async fn query_matches_by_duration(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     player_id: i64,
     start_date: i32,
     end_date: i32,

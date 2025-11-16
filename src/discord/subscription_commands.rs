@@ -1,6 +1,6 @@
 use tracing::info;
 
-use super::discord_helper;
+use super::discord_helper::{self, CommandCtx};
 use crate::database::{database_access, servers_db};
 use crate::{Context, Error};
 
@@ -9,26 +9,28 @@ pub async fn subscribe_channel(
     ctx: Context<'_>,
     #[description = "The channel ID to subscribe"] channel_id: String,
 ) -> Result<(), Error> {
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, guild_id).await? {
-        return Ok(());
-    }
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    subscribe_channel_command(&cmd_ctx, channel_id).await?;
+    Ok(())
+}
 
+async fn subscribe_channel_command(ctx: &CommandCtx<'_>, channel_id: String) -> Result<(), Error> {
     let channel_id_parsed = channel_id.parse::<i64>().map_err(|_| {
         Error::from("Invalid channel ID format. Please provide a valid numeric channel ID.")
     })?;
 
-    let db = database_access::get_connection()?;
-    servers_db::update_server_channel(db, guild_id, channel_id_parsed).await?;
+    let txn = database_access::get_transaction().await?;
+    servers_db::update_server_channel(&txn, ctx.guild_id, channel_id_parsed).await?;
+    txn.commit().await?;
 
     info!(
-        guild_id = guild_id,
+        guild_id = ctx.guild_id,
         channel_id = channel_id_parsed,
         "Subscription channel updated"
     );
 
     discord_helper::public_reply(
-        &ctx,
+        &ctx.discord_ctx,
         format!("Subscription channel set to <#{}>", channel_id_parsed),
     )
     .await?;
@@ -38,21 +40,23 @@ pub async fn subscribe_channel(
 
 #[poise::command(slash_command, guild_only)]
 pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, guild_id).await? {
-        return Ok(());
-    }
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    subscribe_week_command(&cmd_ctx).await?;
+    Ok(())
+}
 
-    let db = database_access::get_connection()?;
-    let server = servers_db::query_server_by_id(db, guild_id)
+async fn subscribe_week_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = servers_db::query_server_by_id(&txn, ctx.guild_id)
         .await?
         .ok_or(Error::from("Server not found in database"))?;
 
     let new_state = server.is_sub_week == 0;
-    servers_db::update_server_sub_week(db, guild_id, new_state).await?;
+    servers_db::update_server_sub_week(&txn, ctx.guild_id, new_state).await?;
+    txn.commit().await?;
 
     info!(
-        guild_id = guild_id,
+        guild_id = ctx.guild_id,
         is_sub_week = new_state,
         "Weekly subscription toggled"
     );
@@ -63,28 +67,30 @@ pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
         "Weekly leaderboard subscription `Disabled`"
     };
 
-    discord_helper::public_reply(&ctx, message.to_string()).await?;
+    discord_helper::public_reply(&ctx.discord_ctx, message.to_string()).await?;
 
     Ok(())
 }
 
 #[poise::command(slash_command, guild_only)]
 pub async fn subscribe_month(ctx: Context<'_>) -> Result<(), Error> {
-    let guild_id = discord_helper::guild_id(&ctx)?;
-    if !discord_helper::validate_command(&ctx, guild_id).await? {
-        return Ok(());
-    }
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    subscribe_month_command(&cmd_ctx).await?;
+    Ok(())
+}
 
-    let db = database_access::get_connection()?;
-    let server = servers_db::query_server_by_id(db, guild_id)
+async fn subscribe_month_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = servers_db::query_server_by_id(&txn, ctx.guild_id)
         .await?
         .ok_or(Error::from("Server not found in database"))?;
 
     let new_state = server.is_sub_month == 0;
-    servers_db::update_server_sub_month(db, guild_id, new_state).await?;
+    servers_db::update_server_sub_month(&txn, ctx.guild_id, new_state).await?;
+    txn.commit().await?;
 
     info!(
-        guild_id = guild_id,
+        guild_id = ctx.guild_id,
         is_sub_month = new_state,
         "Monthly subscription toggled"
     );
@@ -95,7 +101,7 @@ pub async fn subscribe_month(ctx: Context<'_>) -> Result<(), Error> {
         "Monthly leaderboard subscription **disabled**"
     };
 
-    discord_helper::public_reply(&ctx, message.to_string()).await?;
+    discord_helper::public_reply(&ctx.discord_ctx, message.to_string()).await?;
 
     Ok(())
 }

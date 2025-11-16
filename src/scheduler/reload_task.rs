@@ -13,15 +13,15 @@ pub async fn auto_reload(ctx: &SchedulerContext) -> Result<(), Error> {
     }
 
     info!("Starting auto-reload of player matches");
-    let db = database_access::get_connection()?;
-    let players = player_servers_db::query_server_players(db, None).await?;
+    let txn = database_access::get_transaction().await?;
+    let players = player_servers_db::query_server_players(&txn, None).await?;
 
     if players.is_empty() {
         info!("No players registered, skipping auto-reload");
         return Ok(());
     }
 
-    let stats = reload::reload_all_players(db, players).await;
+    let stats = reload::reload_all_players(&txn, players).await;
 
     let success_count = stats
         .iter()

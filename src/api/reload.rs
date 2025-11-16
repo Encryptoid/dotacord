@@ -1,4 +1,4 @@
-use sea_orm::DatabaseConnection;
+use sea_orm::DatabaseTransaction;
 use tracing::info;
 
 use crate::api::open_dota_api;
@@ -11,16 +11,16 @@ pub struct ReloadPlayerStat {
     pub result: Result<Option<usize>, String>,
 }
 
-#[tracing::instrument(level = "trace", skip(db))]
+#[tracing::instrument(level = "trace", skip(txn))]
 pub async fn reload_player(
-    db: &DatabaseConnection,
+    txn: &DatabaseTransaction,
     player: &player_servers_db::PlayerServerModel,
 ) -> ReloadPlayerStat {
     info!(player_id = player.player_id, "Reloading matches for player");
 
     let result = async {
         let db_matches =
-            player_matches_db::query_matches_by_player_id(db, player.player_id).await?;
+            player_matches_db::query_matches_by_player_id(txn, player.player_id).await?;
         let api_matches = open_dota_api::get_player_matches(player.player_id).await?;
 
         info!(
@@ -40,7 +40,7 @@ pub async fn reload_player(
         }
 
         let match_count =
-            import_new_matches(db, player.player_id, &db_matches, &api_matches).await?;
+            import_new_matches(txn, player.player_id, &db_matches, &api_matches).await?;
 
         info!(
             player_id = player.player_id,
@@ -62,7 +62,7 @@ pub async fn reload_player(
 
 #[tracing::instrument(level = "trace", skip(db, db_matches, api_matches))]
 async fn import_new_matches(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     player_id: i64,
     db_matches: &[player_matches_db::PlayerMatchModel],
     api_matches: &[open_dota_api::ApiPlayerMatch],
@@ -87,7 +87,7 @@ async fn import_new_matches(
 }
 
 pub async fn reload_all_players(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     players: Vec<player_servers_db::PlayerServerModel>,
 ) -> Vec<ReloadPlayerStat> {
     let mut stats = Vec::new();

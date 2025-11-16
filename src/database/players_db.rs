@@ -6,7 +6,7 @@ use crate::Error;
 
 pub use player::Model as DotaPlayer;
 
-pub async fn try_add_player(db: &DatabaseConnection, player_id: i64) -> Result<DotaPlayer, Error> {
+pub async fn try_add_player(db: &DatabaseTransaction, player_id: i64) -> Result<DotaPlayer, Error> {
     if let Some(player) = query_player_by_id(db, player_id).await? {
         info!("Player found: {}", player.player_id);
         Ok(player)
@@ -18,14 +18,14 @@ pub async fn try_add_player(db: &DatabaseConnection, player_id: i64) -> Result<D
 }
 
 async fn query_player_by_id(
-    db: &DatabaseConnection,
+    db: &DatabaseTransaction,
     player_id: i64,
 ) -> Result<Option<DotaPlayer>, Error> {
     let row = Player::find_by_id(player_id).one(db).await?;
     Ok(row)
 }
 
-async fn insert_dota_player(db: &DatabaseConnection, player_id: i64) -> Result<(), Error> {
+async fn insert_dota_player(db: &DatabaseTransaction, player_id: i64) -> Result<(), Error> {
     let new_player = player::ActiveModel {
         player_id: Set(player_id),
     };
