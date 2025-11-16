@@ -1,101 +1,109 @@
+use serenity::all::Channel;
 use tracing::info;
 
-use super::discord_helper::{self, CommandCtx};
 use crate::database::servers_db;
-use crate::{fmt, Context, Error};
+use crate::discord::discord_helper::{self, CommandCtx};
+use crate::str;
+use crate::{Context, Error};
 
-#[poise::command(slash_command, guild_only)]
+enum SubscriptionType {
+    Week,
+    Month,
+}
+
+#[poise::command(
+    slash_command,
+    subcommands("subscribe_channel", "subscribe_week", "subscribe_month")
+)]
+pub async fn subscribe(_: Context<'_>) -> Result<(), Error> {
+    unreachable!();
+}
+
+#[poise::command(slash_command, rename = "channel")]
 pub async fn subscribe_channel(
     ctx: Context<'_>,
-    #[description = "The channel ID to subscribe"] channel_id: String,
+    #[description = "The Channel Id to subscribe"] channel_id: Channel,
 ) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    let channel_id = channel_id.id().get() as i64;
     subscribe_channel_command(&cmd_ctx, channel_id).await?;
     Ok(())
 }
 
-async fn subscribe_channel_command(ctx: &CommandCtx<'_>, channel_id: String) -> Result<(), Error> {
-    let channel_id_parsed = channel_id.parse::<i64>().map_err(|_| {
-        Error::from("Invalid channel ID format. Please provide a valid numeric channel ID.")
-    })?;
+async fn subscribe_channel_command(ctx: &CommandCtx<'_>, channel_id: i64) -> Result<(), Error> {
+    // let channel_id_parsed = channel_id.parse::<i64>().map_err(|_| {
+    //     Error::from("Invalid Channel Id format. Please provide a valid numeric channel ID.")
+    // })?;
 
-    servers_db::update_server_channel(ctx.guild_id, channel_id_parsed).await?;
+    servers_db::update_server_channel(ctx.guild_id, channel_id).await?;
 
     info!(
         guild_id = ctx.guild_id,
-        channel_id = channel_id_parsed,
-        "Subscription channel updated"
+        channel_id, "Subscription channel updated"
     );
 
     discord_helper::public_reply(
         &ctx.discord_ctx,
-        fmt!("Subscription channel set to <#{}>", channel_id_parsed),
+        format!("Subscription channel set to <#{}>", channel_id),
     )
     .await?;
 
     Ok(())
 }
 
-#[poise::command(slash_command, guild_only)]
+#[poise::command(slash_command, rename = "week")]
 pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
-    subscribe_week_command(&cmd_ctx).await?;
+    subscribe_command(&cmd_ctx, SubscriptionType::Week).await?;
     Ok(())
 }
 
-async fn subscribe_week_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
-    let server = servers_db::query_server_by_id(ctx.guild_id)
-        .await?
-        .ok_or(Error::from("Server not found in database"))?;
-
-    let new_state = server.is_sub_week == 0;
-    servers_db::update_server_sub_week(ctx.guild_id, new_state).await?;
-
-    info!(
-        guild_id = ctx.guild_id,
-        is_sub_week = new_state,
-        "Weekly subscription toggled"
-    );
-
-    let message = if new_state {
-        "Weekly leaderboard subscription `Enabled`"
-    } else {
-        "Weekly leaderboard subscription `Disabled`"
-    };
-
-    discord_helper::public_reply(&ctx.discord_ctx, message.to_string()).await?;
-
-    Ok(())
-}
-
-#[poise::command(slash_command, guild_only)]
+#[poise::command(slash_command, rename = "month")]
 pub async fn subscribe_month(ctx: Context<'_>) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
-    subscribe_month_command(&cmd_ctx).await?;
+    subscribe_command(&cmd_ctx, SubscriptionType::Month).await?;
     Ok(())
 }
 
-async fn subscribe_month_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
+async fn subscribe_command(
+    ctx: &CommandCtx<'_>,
+    subscription_type: SubscriptionType,
+) -> Result<(), Error> {
     let server = servers_db::query_server_by_id(ctx.guild_id)
         .await?
         .ok_or(Error::from("Server not found in database"))?;
 
-    let new_state = server.is_sub_month == 0;
-    servers_db::update_server_sub_month(ctx.guild_id, new_state).await?;
+    if server.channel_id.is_none() {
+        ctx.private_reply(str!(
+            "No subscription channel configured. Set one with `/subscribe_channel <channel_id>`."
+        ))
+        .await?;
 
-    info!(
-        guild_id = ctx.guild_id,
-        is_sub_month = new_state,
-        "Monthly subscription toggled"
-    );
+        return Ok(());
+    }
 
-    let message = if new_state {
-        "Monthly leaderboard subscription **enabled**"
-    } else {
-        "Monthly leaderboard subscription **disabled**"
+    let message = match subscription_type {
+        SubscriptionType::Week => {
+            let new_state = server.is_sub_week == 0;
+            servers_db::update_server_sub_week(ctx.guild_id, new_state).await?;
+            format!("{} to Weekly Leaderboard Updates", get_state(new_state))
+        }
+        SubscriptionType::Month => {
+            let new_state = server.is_sub_month == 0;
+            servers_db::update_server_sub_month(ctx.guild_id, new_state).await?;
+            format!("{} to Monthly Leaderboard Updates", get_state(new_state))
+        }
     };
 
-    discord_helper::public_reply(&ctx.discord_ctx, message.to_string()).await?;
+    ctx.private_reply(str!(message)).await?;
 
     Ok(())
+}
+
+fn get_state(is_subscribed: bool) -> &'static str {
+    if is_subscribed {
+        "Subscribed"
+    } else {
+        "Unsubscribed"
+    }
 }

@@ -4,7 +4,7 @@ use crate::database::hero_cache;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::util::dates::format_section_timestamp;
-use crate::{fmt, str};
+use crate::str;
 
 pub fn build_winrate_section(
     duration_label: &str,
@@ -32,11 +32,9 @@ pub fn build_winrate_section(
     let winner = sorted_stats.first()?;
     let (winner_wins, winner_total) = selector(winner);
     let win_rate = (winner_wins as f64 / winner_total as f64) * 100.0;
-    let title = fmt!(
+    let title = format!(
         "[{duration_label}] - {left_emoji} {title_text} {right_emoji} - __*{}*__ - {:.0}% {}",
-        winner.player_name,
-        win_rate,
-        win_rate_label
+        winner.player_name, win_rate, win_rate_label
     );
 
     let mut builder = TableBuilder::new(title);
@@ -61,7 +59,7 @@ pub fn build_winrate_section(
                         let (wins, total) = selector(s);
                         if total > 0 {
                             let win_rate = (wins as f64 / total as f64) * 100.0;
-                            fmt!("{:>3.0}%", win_rate)
+                            format!("{:>3.0}%", win_rate)
                         } else {
                             str!("-")
                         }
@@ -122,12 +120,9 @@ pub fn build_hero_spam_section(
         * 100.0;
     let hero_name =
         hero_cache::get_hero_by_id(winner.hero_pick_stat.hero_id).unwrap_or("Unknown Hero");
-    let title = fmt!(
+    let title = format!(
         "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {:.0}% {} ({})",
-        winner.player_name,
-        pick_rate,
-        "Hero Pick Rate",
-        hero_name
+        winner.player_name, pick_rate, "Hero Pick Rate", hero_name
     );
 
     let mut builder = TableBuilder::new(title);
@@ -176,7 +171,7 @@ pub fn build_hero_spam_section(
                         let percentage = (s.hero_pick_stat.stats.total_matches as f32
                             / s.overall_stats.total_matches as f32)
                             * 100.0;
-                        fmt!("{:>3.0}%", percentage)
+                        format!("{:>3.0}%", percentage)
                     })
                     .collect(),
             ))
@@ -207,12 +202,9 @@ pub fn build_single_match_stat_section(
     let winner = sorted_stats.first()?;
     let winner_stat = selector(winner);
     let hero_name = hero_cache::get_hero_by_id(winner_stat.hero_id).unwrap_or("Unknown Hero");
-    let title = fmt!(
+    let title = format!(
         "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {} {} ({})",
-        winner.player_name,
-        winner_stat.value,
-        stat_name,
-        hero_name
+        winner.player_name, winner_stat.value, stat_name, hero_name
     );
 
     let player_column: Vec<String> = sorted_stats.iter().map(|s| str!(s.player_name)).collect();
@@ -236,7 +228,7 @@ pub fn build_single_match_stat_section(
         .collect();
     let average_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| fmt!("{:.2}", selector(s).average))
+        .map(|s| format!("{:.2}", selector(s).average))
         .collect();
     let total_column: Vec<String> = sorted_stats
         .iter()
@@ -278,9 +270,9 @@ fn format_duration(seconds: i32) -> String {
     let hours = seconds / 3600;
     let minutes = (seconds % 3600) / 60;
     if hours > 0 {
-        fmt!("{}h {:02}m", hours, minutes)
+        format!("{}h {:02}m", hours, minutes)
     } else {
-        fmt!("{}m", minutes)
+        format!("{}m", minutes)
     }
 }
 
@@ -310,15 +302,9 @@ pub fn build_longest_match_section(
     let duration = format_duration(winner.longest_match_stat.value);
     let player_name = winner.player_name.as_str();
 
-    let title = fmt!(
+    let title = format!(
         "[{}] - {} {} {} - __*{}*__ - {} - {}",
-        duration_label,
-        left_emoji,
-        label,
-        right_emoji,
-        player_name,
-        stat_name,
-        duration,
+        duration_label, left_emoji, label, right_emoji, player_name, stat_name, duration,
     );
 
     let player_column: Vec<String> = sorted_stats.iter().map(|s| str!(s.player_name)).collect();

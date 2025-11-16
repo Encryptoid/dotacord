@@ -1,5 +1,3 @@
-use crate::fmt;
-
 pub struct Text {
     header: String,
     values: Vec<String>,
@@ -22,9 +20,9 @@ impl Text {
 
     fn format_with_style(&self, content: &str, width: usize) -> String {
         if self.inline_code {
-            fmt!("`{:<width$}`", content, width = width)
+            format!("`{:<width$}`", content, width = width)
         } else {
-            fmt!("{:<width$}", content, width = width)
+            format!("{:<width$}", content, width = width)
         }
     }
 }

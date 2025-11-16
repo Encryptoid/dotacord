@@ -7,7 +7,7 @@ use crate::discord::discord_helper::{self, CommandCtx};
 use crate::leaderboard::duration::Duration;
 use crate::leaderboard::leaderboard_stats::get_leaderboard_messages;
 use crate::util::dates;
-use crate::{fmt, Context, Error};
+use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command, rename = "dev_leaderboard")]
 pub async fn leaderboard(
@@ -38,7 +38,7 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
 
     let duration_label = duration.to_label();
     let reply = &ctx
-        .private_reply(fmt!(
+        .private_reply(format!(
             "Generating Leaderboard for {} [ {} -> {} ]",
             duration_label,
             dates::format_short(start_utc),
@@ -49,7 +49,7 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
     let messages = get_leaderboard_messages(players, &start_utc, &end_utc, &duration_label).await?;
 
     if messages.is_empty() {
-        let content = fmt!(
+        let content = format!(
             "No matches found for any players in the duration: {} [ {} -> {} ]",
             duration_label,
             dates::format_short(start_utc),

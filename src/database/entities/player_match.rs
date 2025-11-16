@@ -1,7 +1,5 @@
 use sea_orm::entity::prelude::*;
 
-use crate::database::types::GameMode;
-
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "player_matches")]
 pub struct Model {

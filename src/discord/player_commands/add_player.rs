@@ -1,6 +1,6 @@
 use crate::database::{player_servers_db, players_db};
 use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
-use crate::{fmt, Context, Error};
+use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn add_player(
@@ -21,7 +21,7 @@ async fn add_player_command(
     let player_servers = player_servers_db::query_server_players(ctx.guild_id).await?;
 
     if player_servers.len() >= ctx.app_cfg.max_players_per_server {
-        ctx.private_reply(fmt!(
+        ctx.private_reply(format!(
             "Maximum number of players ({}) reached for this server.",
             ctx.app_cfg.max_players_per_server
         ))
@@ -30,7 +30,7 @@ async fn add_player_command(
     }
 
     if player_servers.iter().any(|ps| ps.player_id == player_id) {
-        ctx.private_reply(fmt!(
+        ctx.private_reply(format!(
             "Dota player {name} ({player_id}) is already on this server"
         ))
         .await?;
@@ -38,7 +38,7 @@ async fn add_player_command(
     }
 
     players_db::insert_player_and_server(ctx.guild_id, player_id, &name).await?;
-    ctx.private_reply(fmt!(
+    ctx.private_reply(format!(
         "Player {name} ({player_id}) has been added to this server."
     ))
     .await?;

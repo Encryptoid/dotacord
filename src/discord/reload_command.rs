@@ -3,7 +3,7 @@ use poise::ReplyHandle;
 use crate::api::api_wrapper;
 use crate::database::player_servers_db;
 use crate::discord::discord_helper::{self, CommandCtx};
-use crate::{fmt, Context, Error};
+use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
 #[tracing::instrument(level = "trace", skip(ctx))]
@@ -23,7 +23,7 @@ async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
     }
 
     let reply = ctx.discord_ctx
-        .say(fmt!(
+        .say(format!(
             "Reloading player matches for {} players. Message will be edited with progress updates.\n",
             players.len()
         ))
@@ -36,7 +36,7 @@ async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
                 add_to_reply(
                     ctx,
                     &reply,
-                    &fmt!("Reloaded {} matches for {}\n", count, stat.display_name),
+                    &format!("Reloaded {} matches for {}\n", count, stat.display_name),
                 )
                 .await?;
             }
@@ -44,7 +44,7 @@ async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
                 add_to_reply(
                     ctx,
                     &reply,
-                    &fmt!(
+                    &format!(
                         "No dota matches found for {} with PlayerId={}. Removing player from cache.\n",
                         stat.display_name,
                         stat.player_id
@@ -56,7 +56,7 @@ async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
                 add_to_reply(
                     ctx,
                     &reply,
-                    &fmt!("Failed to reload {} : {}\n", stat.display_name, e),
+                    &format!("Failed to reload {} : {}\n", stat.display_name, e),
                 )
                 .await?;
             }
@@ -72,7 +72,7 @@ async fn add_to_reply(
     append_text: &str,
 ) -> Result<(), Error> {
     let message = reply.message().await?;
-    let new_content = fmt!("{}\n{}", message.content, append_text);
+    let new_content = format!("{}\n{}", message.content, append_text);
     reply
         .edit(
             ctx.discord_ctx,

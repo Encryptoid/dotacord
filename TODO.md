@@ -13,7 +13,7 @@
 - [ ] Reorganise player commands into a subcommand group
 - [ ] Way to clear commands from all servers, to update
 - [ ] Owner commands
-- [ ] Heartbeating
+- [x] Heartbeating
 - [ ] Reload
 
 ## Ireland
@@ -22,7 +22,7 @@
 - [ ] More customisation on sections
 - [ ] Timed reloading
 - [ ] Timed publishing, config for ephemeral, etc.
-- [ ] SQL Injection protection
+- [x] SQL Injection protection
 - [ ] Status
 - [ ] Database backup
 

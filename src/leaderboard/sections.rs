@@ -1,4 +1,3 @@
-use crate::fmt;
 use crate::leaderboard::section::LeaderboardSection;
 
 use super::emoji::Emoji;
@@ -31,7 +30,7 @@ fn format_overall_win_rate_section(
         |s: &PlayerStats| (s.overall_stats.wins, s.overall_stats.total_matches),
         Emoji::AEGIS2015,
         Emoji::WIZ_WOW,
-        &fmt!("Gamer of the {duration_label}"),
+        &format!("Gamer of the {duration_label}"),
         "Overall Win Rate",
         include_links,
     )

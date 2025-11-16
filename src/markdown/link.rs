@@ -1,5 +1,3 @@
-use crate::fmt;
-
 pub struct Link {
     text: String,
     urls: Vec<String>,
@@ -8,7 +6,7 @@ pub struct Link {
 pub const LINK_SYMBOL: &str = "@";
 
 pub fn mask_link(url: &str, symbol: &str) -> String {
-    fmt!("[{}]({})", symbol, url)
+    format!("[{}]({})", symbol, url)
 }
 
 impl Link {
@@ -37,13 +35,13 @@ impl crate::markdown::Column for Link {
     }
 
     fn format_header(&self, width: usize) -> String {
-        fmt!("{:<width$}", self.text, width = width)
+        format!("{:<width$}", self.text, width = width)
     }
 
     fn format_cell(&self, row_index: usize, width: usize) -> String {
         // Just use text(no url formatting) for padding.
         // The [](url) syntax isn't rendered by Discord.
-        fmt!(
+        format!(
             "{:<width$}",
             mask_link(&self.urls[row_index], &self.text),
             width = width

@@ -5,7 +5,7 @@ use crate::database::player_servers_db::PlayerServerModel;
 use crate::database::{database_access, player_servers_db};
 use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
 use crate::markdown::{Link, TableBuilder, Text};
-use crate::{fmt, Context, Error};
+use crate::{Context, Error};
 
 #[poise::command(slash_command, guild_only)]
 pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
@@ -40,10 +40,10 @@ async fn list_players_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
 }
 
 fn format_list_players(players: &Vec<PlayerServerModel>) -> String {
-    let title = fmt!("{} player(s) registered to this server:", players.len());
+    let title = format!("{} player(s) registered to this server:", players.len());
 
     if players.is_empty() {
-        return fmt!("{}\nNo data available.", title);
+        return format!("{}\nNo data available.", title);
     }
 
     let mut sorted_players: Vec<&PlayerServerModel> = players.iter().collect();

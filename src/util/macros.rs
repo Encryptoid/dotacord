@@ -1,10 +1,10 @@
 /// Alias for `fmt!()`
-#[macro_export]
-macro_rules! fmt {
-    ($($arg:tt)*) => {
-        format!($($arg)*)
-    };
-}
+// #[macro_export]
+// macro_rules! format {
+//     ($($arg:tt)*) => {
+//         format!($($arg)*)
+//     };
+// }
 
 // /// Alias for `.to_string()`
 #[macro_export]

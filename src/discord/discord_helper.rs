@@ -5,7 +5,7 @@ use tracing::{debug, info, warn};
 
 use crate::database::servers_db;
 use crate::leaderboard::emoji::Emoji;
-use crate::{fmt, Context, Error};
+use crate::{Context, Error};
 
 const GUILD_LOOKUP_ERROR: &str = "Could not get guild";
 pub struct CommandCtx<'a> {
@@ -146,7 +146,7 @@ pub(crate) async fn reply_countdown(
     let reply = public_reply(&ctx, initial_content.to_string()).await?;
     for i in (1..=count).rev() {
         tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
-        let countdown_content = fmt!(
+        let countdown_content = format!(
             "{}{} {} **{}...** {}",
             initial_content,
             countdown_text,
@@ -163,7 +163,7 @@ pub(crate) async fn reply_countdown(
     reply
         .edit(
             *ctx,
-            CreateReply::default().content(fmt!("{}{}", initial_content, final_content)),
+            CreateReply::default().content(format!("{}{}", initial_content, final_content)),
         )
         .await
         .ok();

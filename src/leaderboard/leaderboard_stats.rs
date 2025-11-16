@@ -5,7 +5,7 @@ use crate::database::{player_matches_db, player_servers_db};
 use crate::leaderboard::section::LeaderboardSection;
 use crate::leaderboard::stats_calculator::{self, PlayerStats};
 use crate::leaderboard::{leaderboard_stats, sections};
-use crate::{fmt, Error};
+use crate::Error;
 
 pub async fn get_leaderboard_messages(
     players: Vec<player_servers_db::PlayerServerModel>,
@@ -56,9 +56,9 @@ async fn get_player_stats(
 }
 
 fn section_to_msg_content(section: &LeaderboardSection) -> String {
-    let mut content = fmt!("### {}\n", section.title);
+    let mut content = format!("### {}\n", section.title);
     for line in &section.lines {
-        content.push_str(&fmt!("{}\n", line));
+        content.push_str(&format!("{}\n", line));
     }
     content
 }

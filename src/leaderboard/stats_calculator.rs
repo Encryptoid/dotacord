@@ -152,17 +152,17 @@ pub fn player_matches_to_stats(
         ranked_stats,
         hero_pick_stat,
 
-        most_kills_stat: create_single_match_stat(&highest_kills_tracker, &total_matches)?,
-        most_assists_stat: create_single_match_stat(&highest_assists_tracker, &total_matches)?,
-        most_deaths_stat: create_single_match_stat(&highest_deaths_tracker, &total_matches)?,
-        longest_match_stat: create_single_match_stat(&longest_match_tracker, &total_matches)?,
+        most_kills_stat: create_single_match_stat(highest_kills_tracker, &total_matches)?,
+        most_assists_stat: create_single_match_stat(highest_assists_tracker, &total_matches)?,
+        most_deaths_stat: create_single_match_stat(highest_deaths_tracker, &total_matches)?,
+        longest_match_stat: create_single_match_stat(longest_match_tracker, &total_matches)?,
 
         most_recent_match_time,
     })
 }
 
 fn create_single_match_stat(
-    tracker: &SingleMatchTracker,
+    tracker: SingleMatchTracker,
     matches_len: &f32,
 ) -> Result<SingleMatchStat, Error> {
     let player_match = tracker
