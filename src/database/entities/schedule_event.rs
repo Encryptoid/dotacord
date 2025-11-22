@@ -2,15 +2,14 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "servers")]
+#[sea_orm(table_name = "schedule_events")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key)]
+    pub event_id: i64,
     pub server_id: i64,
-    pub server_name: String,
-    pub channel_id: Option<i64>,
-    pub is_sub_week: i32,
-    pub is_sub_month: i32,
-    pub is_sub_reload: i32,
+    pub event_type: String,
+    pub event_source: String,
+    pub event_time: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

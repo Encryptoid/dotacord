@@ -3,8 +3,8 @@ use crate::api::open_dota_links;
 use crate::database::hero_cache;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::{Link, TableBuilder, Text};
-use crate::util::dates::format_section_timestamp;
 use crate::str;
+use crate::util::dates::format_section_timestamp;
 
 pub fn build_winrate_section(
     duration_label: &str,
@@ -17,6 +17,9 @@ pub fn build_winrate_section(
     include_links: bool,
 ) -> Option<LeaderboardSection> {
     let mut sorted_stats: Vec<_> = all_stats.iter().filter(|s| selector(s).1 > 0).collect();
+
+    let mut x = 5;
+    x = 6;
 
     sorted_stats.sort_by(|a, b| {
         let (a_wins, a_total) = selector(a);

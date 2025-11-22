@@ -1,7 +1,7 @@
 use rand::Rng;
 use tracing::info;
 
-use crate::discord::discord_helper::{self, CommandCtx};
+use crate::discord::discord_helper::{self, CmdCtx};
 use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
 
@@ -17,7 +17,7 @@ pub async fn flip(
 }
 
 async fn flip_command(
-    ctx: &CommandCtx<'_>,
+    ctx: &CmdCtx<'_>,
     choice1: Option<String>,
     choice2: Option<String>,
 ) -> Result<(), Error> {
@@ -46,13 +46,7 @@ async fn flip_command(
         winner,
         Emoji::AGHS_SCEPTER
     );
-    discord_helper::reply_countdown(
-        &ctx.discord_ctx,
-        &initial_content,
-        "Flipping... ",
-        final_content,
-    )
-    .await?;
+    discord_helper::reply_countdown(&ctx, &initial_content, "Flipping... ", final_content).await?;
 
     Ok(())
 }

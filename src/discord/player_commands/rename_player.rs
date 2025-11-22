@@ -3,7 +3,7 @@ use tracing::info;
 
 use super::super::discord_helper;
 use crate::database::{database_access, player_servers_db};
-use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
+use crate::discord::discord_helper::{get_command_ctx, CmdCtx, Ephemeral};
 use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
@@ -18,15 +18,18 @@ pub async fn rename_player(
 }
 
 async fn rename_player_command(
-    ctx: &CommandCtx<'_>,
+    ctx: &CmdCtx<'_>,
     discord_user: User,
     new_name: String,
 ) -> Result<(), Error> {
     let server_name = discord_helper::guild_name(&ctx.discord_ctx)?;
     let new_name = new_name.trim().to_string();
     if new_name.is_empty() {
-        ctx.private_reply("Player name cannot be empty.".to_owned())
-            .await?;
+        ctx.reply(
+            Ephemeral::Private,
+            "Player name cannot be empty.".to_owned(),
+        )
+        .await?;
         return Ok(());
     }
 
@@ -51,6 +54,6 @@ async fn rename_player_command(
     } else {
         format!("Player: {display_name} does not exist on this server.")
     };
-    ctx.private_reply(message).await?;
+    ctx.reply(Ephemeral::Private, message).await?;
     Ok(())
 }

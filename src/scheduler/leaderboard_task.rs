@@ -1,4 +1,4 @@
-use chrono::{Datelike, Timelike, Utc};
+use chrono::Utc;
 use poise::serenity_prelude as serenity;
 use tracing::{error, info, warn};
 
@@ -9,81 +9,13 @@ use crate::scheduler::SchedulerContext;
 use crate::Error;
 
 #[tracing::instrument(level = "info", skip(ctx))]
-pub async fn check_and_publish_leaderboards(ctx: &SchedulerContext) -> Result<(), Error> {
-    let now = Utc::now();
-    let weekday = now.weekday().num_days_from_monday() + 1;
-    let day_of_month = now.day();
-    let hour = now.hour();
-
-    let config = &ctx.config.scheduler;
-
-    check_weekly_leaderboard(ctx, weekday, hour, config).await?;
-    check_monthly_leaderboard(ctx, day_of_month, hour, config).await?;
-
-    Ok(())
-}
-
-async fn check_weekly_leaderboard(
+pub async fn publish_leaderboard(
     ctx: &SchedulerContext,
-    weekday: u32,
-    hour: u32,
-    config: &crate::config::SchedulerConfig,
-) -> Result<(), Error> {
-    if let (Some(configured_day), Some(configured_hour)) = (
-        config.weekly_leaderboard_day,
-        config.weekly_leaderboard_hour,
-    ) {
-        if weekday == configured_day as u32 && hour == configured_hour as u32 {
-            info!("Weekly leaderboard trigger matched, publishing");
-            publish_leaderboard(ctx, Duration::Week).await?;
-        }
-    }
-    Ok(())
-}
-
-async fn check_monthly_leaderboard(
-    ctx: &SchedulerContext,
-    day_of_month: u32,
-    hour: u32,
-    config: &crate::config::SchedulerConfig,
-) -> Result<(), Error> {
-    if let (Some(configured_day), Some(configured_hour)) = (
-        config.monthly_leaderboard_day,
-        config.monthly_leaderboard_hour,
-    ) {
-        if day_of_month == configured_day as u32 && hour == configured_hour as u32 {
-            info!("Monthly leaderboard trigger matched, publishing");
-            publish_leaderboard(ctx, Duration::Month).await?;
-        }
-    }
-    Ok(())
-}
-
-#[tracing::instrument(level = "info", skip(ctx))]
-async fn publish_leaderboard(ctx: &SchedulerContext, duration: Duration) -> Result<(), Error> {
-    info!(duration = ?duration, "Publishing leaderboard");
-
-    let servers = servers_db::query_all_servers().await?;
-
-    if servers.is_empty() {
-        info!("No servers registered, skipping leaderboard publication");
-        return Ok(());
-    }
-
-    for server in servers {
-        if let Err(e) = publish_to_server(ctx, server, duration).await {
-            error!(error = ?e, "Failed to publish leaderboard to server");
-        }
-    }
-
-    Ok(())
-}
-
-async fn publish_to_server(
-    ctx: &SchedulerContext,
-    server: servers_db::DiscordServer,
+    server: &servers_db::DiscordServer,
     duration: Duration,
 ) -> Result<(), Error> {
+    info!(duration = ?duration, "Publishing leaderboard");
+
     let channel_id_value = match server.channel_id {
         Some(id) => id,
         None => {

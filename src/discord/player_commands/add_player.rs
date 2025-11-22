@@ -1,5 +1,5 @@
 use crate::database::{player_servers_db, players_db};
-use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
+use crate::discord::discord_helper::{get_command_ctx, CmdCtx, Ephemeral};
 use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
@@ -13,34 +13,35 @@ pub async fn add_player(
     Ok(())
 }
 
-async fn add_player_command(
-    ctx: &CommandCtx<'_>,
-    name: String,
-    player_id: i64,
-) -> Result<(), Error> {
+async fn add_player_command(ctx: &CmdCtx<'_>, name: String, player_id: i64) -> Result<(), Error> {
     let player_servers = player_servers_db::query_server_players(ctx.guild_id).await?;
 
     if player_servers.len() >= ctx.app_cfg.max_players_per_server {
-        ctx.private_reply(format!(
-            "Maximum number of players ({}) reached for this server.",
-            ctx.app_cfg.max_players_per_server
-        ))
+        ctx.reply(
+            Ephemeral::Private,
+            format!(
+                "Maximum number of players ({}) reached for this server.",
+                ctx.app_cfg.max_players_per_server
+            ),
+        )
         .await?;
         return Ok(());
     }
 
     if player_servers.iter().any(|ps| ps.player_id == player_id) {
-        ctx.private_reply(format!(
-            "Dota player {name} ({player_id}) is already on this server"
-        ))
+        ctx.reply(
+            Ephemeral::Private,
+            format!("Dota player {name} ({player_id}) is already on this server"),
+        )
         .await?;
         return Ok(());
     }
 
     players_db::insert_player_and_server(ctx.guild_id, player_id, &name).await?;
-    ctx.private_reply(format!(
-        "Player {name} ({player_id}) has been added to this server."
-    ))
+    ctx.reply(
+        Ephemeral::Private,
+        format!("Player {name} ({player_id}) has been added to this server."),
+    )
     .await?;
     Ok(())
 }

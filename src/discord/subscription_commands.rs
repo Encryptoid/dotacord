@@ -2,18 +2,24 @@ use serenity::all::Channel;
 use tracing::info;
 
 use crate::database::servers_db;
-use crate::discord::discord_helper::{self, CommandCtx};
+use crate::discord::discord_helper::{self, CmdCtx, Ephemeral};
 use crate::str;
 use crate::{Context, Error};
 
 enum SubscriptionType {
     Week,
     Month,
+    Reload,
 }
 
 #[poise::command(
     slash_command,
-    subcommands("subscribe_channel", "subscribe_week", "subscribe_month")
+    subcommands(
+        "subscribe_channel",
+        "subscribe_week",
+        "subscribe_month",
+        "subscribe_reload"
+    )
 )]
 pub async fn subscribe(_: Context<'_>) -> Result<(), Error> {
     unreachable!();
@@ -22,18 +28,27 @@ pub async fn subscribe(_: Context<'_>) -> Result<(), Error> {
 #[poise::command(slash_command, rename = "channel")]
 pub async fn subscribe_channel(
     ctx: Context<'_>,
-    #[description = "The Channel Id to subscribe"] channel_id: Channel,
+    #[description = "The Channel to publish leaderboard subscriptions to"] channel: Channel,
 ) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
-    let channel_id = channel_id.id().get() as i64;
-    subscribe_channel_command(&cmd_ctx, channel_id).await?;
+    subscribe_channel_command(&cmd_ctx, channel).await?;
     Ok(())
 }
 
-async fn subscribe_channel_command(ctx: &CommandCtx<'_>, channel_id: i64) -> Result<(), Error> {
-    // let channel_id_parsed = channel_id.parse::<i64>().map_err(|_| {
-    //     Error::from("Invalid Channel Id format. Please provide a valid numeric channel ID.")
-    // })?;
+async fn subscribe_channel_command(ctx: &CmdCtx<'_>, channel: Channel) -> Result<(), Error> {
+    let channel_id = channel.id().get() as i64;
+    let category = channel
+        .guild()
+        .ok_or(Error::from("Could not get channel category information"))?;
+
+    if !category.is_text_based() {
+        ctx.reply(
+            Ephemeral::Private,
+            str!("The provided channel is not a text-based channel."),
+        )
+        .await?;
+        return Ok(());
+    }
 
     servers_db::update_server_channel(ctx.guild_id, channel_id).await?;
 
@@ -42,8 +57,8 @@ async fn subscribe_channel_command(ctx: &CommandCtx<'_>, channel_id: i64) -> Res
         channel_id, "Subscription channel updated"
     );
 
-    discord_helper::public_reply(
-        &ctx.discord_ctx,
+    ctx.reply(
+        Ephemeral::Private,
         format!("Subscription channel set to <#{}>", channel_id),
     )
     .await?;
@@ -65,8 +80,15 @@ pub async fn subscribe_month(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+#[poise::command(slash_command, rename = "reload")]
+pub async fn subscribe_reload(ctx: Context<'_>) -> Result<(), Error> {
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    subscribe_command(&cmd_ctx, SubscriptionType::Reload).await?;
+    Ok(())
+}
+
 async fn subscribe_command(
-    ctx: &CommandCtx<'_>,
+    ctx: &CmdCtx<'_>,
     subscription_type: SubscriptionType,
 ) -> Result<(), Error> {
     let server = servers_db::query_server_by_id(ctx.guild_id)
@@ -74,9 +96,10 @@ async fn subscribe_command(
         .ok_or(Error::from("Server not found in database"))?;
 
     if server.channel_id.is_none() {
-        ctx.private_reply(str!(
-            "No subscription channel configured. Set one with `/subscribe_channel <channel_id>`."
-        ))
+        ctx.reply(
+            Ephemeral::Private,
+            str!("No subscription channel configured. Set one with `/subscribe_channel <channel_id>`."),
+        )
         .await?;
 
         return Ok(());
@@ -93,9 +116,14 @@ async fn subscribe_command(
             servers_db::update_server_sub_month(ctx.guild_id, new_state).await?;
             format!("{} to Monthly Leaderboard Updates", get_state(new_state))
         }
+        SubscriptionType::Reload => {
+            let new_state = server.is_sub_reload == 0;
+            servers_db::update_server_sub_reload(ctx.guild_id, new_state).await?;
+            format!("{} to Automatic Match Reloads", get_state(new_state))
+        }
     };
 
-    ctx.private_reply(str!(message)).await?;
+    ctx.reply(Ephemeral::Private, str!(message)).await?;
 
     Ok(())
 }

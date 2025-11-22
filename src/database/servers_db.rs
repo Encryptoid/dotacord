@@ -24,6 +24,7 @@ pub async fn insert_server(
         channel_id: Set(channel_id),
         is_sub_week: Set(0),
         is_sub_month: Set(0),
+        is_sub_reload: Set(0),
     };
 
     Server::insert(new_server).exec(txn).await?;
@@ -75,6 +76,20 @@ pub async fn update_server_sub_month(server_id: i64, is_sub_month: bool) -> Resu
     if let Some(s) = server {
         let mut s_active: server::ActiveModel = s.into();
         s_active.is_sub_month = Set(if is_sub_month { 1 } else { 0 });
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_sub_reload(server_id: i64, is_sub_reload: bool) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.is_sub_reload = Set(if is_sub_reload { 1 } else { 0 });
         s_active.update(&txn).await?;
     }
 

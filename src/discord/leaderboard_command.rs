@@ -3,7 +3,7 @@ use poise::CreateReply;
 use tracing::{error, info};
 
 use crate::database::player_servers_db;
-use crate::discord::discord_helper::{self, CommandCtx};
+use crate::discord::discord_helper::{self, CmdCtx, Ephemeral};
 use crate::leaderboard::duration::Duration;
 use crate::leaderboard::leaderboard_stats::get_leaderboard_messages;
 use crate::util::dates;
@@ -19,7 +19,7 @@ pub async fn leaderboard(
     Ok(())
 }
 
-pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Result<(), Error> {
+pub async fn leaderboard_command(ctx: &CmdCtx<'_>, duration: Duration) -> Result<(), Error> {
     let end_utc = Utc::now();
     let start_utc = duration.start_date(end_utc);
     let players = player_servers_db::query_server_players(ctx.guild_id).await?;
@@ -28,7 +28,9 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
             guild_id = ctx.guild_id,
             "No players registered on server - cannot generate leaderboard"
         );
-        ctx.private_reply(
+
+        ctx.reply(
+            Ephemeral::Private,
             "No players are registered for this server, so a leaderboard cannot be generated.",
         )
         .await?;
@@ -38,12 +40,15 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
 
     let duration_label = duration.to_label();
     let reply = &ctx
-        .private_reply(format!(
-            "Generating Leaderboard for {} [ {} -> {} ]",
-            duration_label,
-            dates::format_short(start_utc),
-            dates::format_short(end_utc)
-        ))
+        .reply(
+            Ephemeral::Private,
+            format!(
+                "Generating Leaderboard for {} [ {} -> {} ]",
+                duration_label,
+                dates::format_short(start_utc),
+                dates::format_short(end_utc)
+            ),
+        )
         .await?;
 
     let messages = get_leaderboard_messages(players, &start_utc, &end_utc, &duration_label).await?;
@@ -76,7 +81,7 @@ pub async fn leaderboard_command(ctx: &CommandCtx<'_>, duration: Duration) -> Re
 
     let mut replies = vec![];
     for batch in batches {
-        let batch_reply = ctx.private_reply(batch).await?;
+        let batch_reply = ctx.reply(Ephemeral::Private, batch).await?;
         replies.push(batch_reply);
     }
 

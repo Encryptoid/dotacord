@@ -1,7 +1,7 @@
 use poise::serenity_prelude::User;
 
 use crate::database::{database_access, player_servers_db};
-use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
+use crate::discord::discord_helper::{get_command_ctx, CmdCtx, Ephemeral};
 use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
@@ -14,7 +14,7 @@ pub async fn remove_player(
     Ok(())
 }
 
-async fn remove_player_command(ctx: &CommandCtx<'_>, discord_user: User) -> Result<(), Error> {
+async fn remove_player_command(ctx: &CmdCtx<'_>, discord_user: User) -> Result<(), Error> {
     let txn = database_access::get_transaction().await?;
     let removed = player_servers_db::remove_server_player_by_user_id(
         &txn,
@@ -30,6 +30,6 @@ async fn remove_player_command(ctx: &CommandCtx<'_>, discord_user: User) -> Resu
     } else {
         format!("Player: {display_name} does not exist on this server.")
     };
-    ctx.private_reply(message).await?;
+    ctx.reply(Ephemeral::Private, message).await?;
     Ok(())
 }

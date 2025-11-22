@@ -2,7 +2,7 @@ use chrono::{DateTime, Datelike, NaiveDate, TimeZone, Utc};
 use poise::ChoiceParameter;
 
 #[derive(Debug, Clone, Copy, ChoiceParameter)]
-pub(crate) enum Duration {
+pub enum Duration {
     Day,
     Week,
     Month,
@@ -12,7 +12,7 @@ pub(crate) enum Duration {
 }
 
 impl Duration {
-    pub(crate) fn start_date(self, end: DateTime<Utc>) -> DateTime<Utc> {
+    pub fn start_date(self, end: DateTime<Utc>) -> DateTime<Utc> {
         match self {
             Duration::Day => end - chrono::Duration::days(1),
             Duration::Week => end - chrono::Duration::weeks(1),
@@ -26,7 +26,7 @@ impl Duration {
     }
 
     /// Human-friendly short label for the duration (used in leaderboard headings).
-    pub(crate) fn to_label(self) -> &'static str {
+    pub fn to_label(self) -> &'static str {
         match self {
             Duration::Day => "Day",
             Duration::Week => "Week",

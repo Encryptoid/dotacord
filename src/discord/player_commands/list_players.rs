@@ -3,7 +3,7 @@ use tracing::info;
 use crate::api::open_dota_links;
 use crate::database::player_servers_db::PlayerServerModel;
 use crate::database::{database_access, player_servers_db};
-use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
+use crate::discord::discord_helper::{get_command_ctx, CmdCtx, Ephemeral};
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::{Context, Error};
 
@@ -14,7 +14,7 @@ pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-async fn list_players_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
+async fn list_players_command(ctx: &CmdCtx<'_>) -> Result<(), Error> {
     let txn = database_access::get_transaction().await?;
     let player_servers = player_servers_db::query_server_players(ctx.guild_id).await?;
     txn.commit().await?;
@@ -35,7 +35,7 @@ async fn list_players_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
         "No players are registered for this server, so a leaderboard cannot be generated."
             .to_string()
     };
-    ctx.private_reply(content).await?;
+    ctx.reply(Ephemeral::Private, content).await?;
     Ok(())
 }
 

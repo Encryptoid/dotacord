@@ -1,36 +1,18 @@
+use poise::CreateReply;
 use tracing::info;
 
 use super::super::discord_helper;
 use crate::database::{database_access, servers_db};
-use crate::discord::discord_helper::{get_command_ctx, CommandCtx};
 use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
-pub async fn register_server(
-    ctx: Context<'_>,
-    #[description = "The server id to register"] server_id: Option<i64>,
-) -> Result<(), Error> {
-    let guild_id = match server_id {
-        Some(id) => id,
-        None => discord_helper::guild_id(&ctx)?,
-    };
+pub async fn register_server(ctx: Context<'_>) -> Result<(), Error> {
     let server_name = discord_helper::guild_name(&ctx)?;
-    let cmd_ctx = get_command_ctx(ctx).await?;
-    register_server_command(&cmd_ctx, guild_id, server_name).await?;
-    Ok(())
-}
 
-async fn register_server_command(
-    ctx: &CommandCtx<'_>,
-    guild_id: i64,
-    server_name: String,
-) -> Result<(), Error> {
-    match servers_db::query_server_by_id(guild_id).await? {
-        Some(_) => {
-            ctx.private_reply("This server is already registered as a Dotacord server.")
-                .await?;
-            Ok(())
-        }
+    // Manually get guild_id/send message as we don't want to validate command for this command only
+    let guild_id = discord_helper::guild_id(&ctx)?;
+    let message = match servers_db::query_server_by_id(guild_id).await? {
+        Some(_) => "Server is already registered as a Dotacord server.",
         None => {
             info!(server_name, guild_id, "Registering new discord server");
 
@@ -38,9 +20,27 @@ async fn register_server_command(
             servers_db::insert_server(&txn, guild_id, server_name, None).await?;
             txn.commit().await?;
 
-            ctx.private_reply("Server has been registered as a Dotacord server.")
-                .await?;
-            Ok(())
+            "Server has been registered as a Dotacord server."
         }
     }
+    .to_string();
+
+    ctx.send(CreateReply::new().content(&message).ephemeral(true))
+        .await?;
+
+    let tester = Test {
+        my_str: message.clone(),
+    };
+
+    test_func(&tester);
+
+    println!("{}", tester.my_str);
+    Ok(())
+}
+struct Test {
+    my_str: String,
+}
+
+fn test_func(x: &Test) {
+    println!("{}", x.my_str);
 }

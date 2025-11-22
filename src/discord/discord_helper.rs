@@ -1,4 +1,6 @@
-use poise::serenity_prelude::{Channel, CreateMessage, Http, MessageFlags};
+use std::fmt::Display;
+
+use poise::serenity_prelude::MessageFlags;
 use poise::{CreateReply, ReplyHandle};
 use tokio::time::Duration;
 use tracing::{debug, info, warn};
@@ -8,19 +10,19 @@ use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
 
 const GUILD_LOOKUP_ERROR: &str = "Could not get guild";
-pub struct CommandCtx<'a> {
+pub struct CmdCtx<'a> {
     pub app_cfg: crate::config::AppConfig,
     pub guild_id: i64,
     pub discord_ctx: Context<'a>,
 }
 
-pub(crate) async fn get_command_ctx<'a>(ctx: Context<'a>) -> Result<CommandCtx<'a>, Error> {
+pub(crate) async fn get_command_ctx<'a>(ctx: Context<'a>) -> Result<CmdCtx<'a>, Error> {
     let data = ctx.data();
     let guild_id = guild_id(&ctx)?;
-    if !validate_command(&ctx, guild_id).await? {
-        return Err(Error::from("Command validation failed"));
+    if let Some(err) = validate_command(&ctx, guild_id).await? {
+        return Err(Error::from(err));
     }
-    Ok(CommandCtx {
+    Ok(CmdCtx {
         app_cfg: data.config.clone(),
         guild_id,
         discord_ctx: ctx,
@@ -41,7 +43,10 @@ pub(crate) fn channel_id(ctx: &Context<'_>) -> Result<i64, Error> {
     Ok(ctx.channel_id().get() as i64)
 }
 
-pub(crate) async fn validate_command(ctx: &Context<'_>, guild_id: i64) -> Result<bool, Error> {
+pub(crate) async fn validate_command(
+    ctx: &Context<'_>,
+    guild_id: i64,
+) -> Result<Option<String>, Error> {
     let author = ctx
         .author_member()
         .await
@@ -63,10 +68,10 @@ pub(crate) async fn validate_command(ctx: &Context<'_>, guild_id: i64) -> Result
             guild_id = guild_id,
             "Command invoked in unregistered server"
         );
-        return Ok(false);
+        return Ok(Some("Server is not registered as a dotacord server. If you are an admin, you can register with /register_server".to_string()));
     }
 
-    Ok(true)
+    Ok(None)
 }
 
 async fn validate_server(guild_id: i64) -> Result<bool, Error> {
@@ -82,68 +87,82 @@ async fn validate_server(guild_id: i64) -> Result<bool, Error> {
     }
 }
 
-pub(crate) async fn public_reply<'a>(
-    ctx: &Context<'a>,
-    content: String,
-) -> Result<ReplyHandle<'a>, Error> {
-    info!(content = content, "Sending public reply");
-    Ok(ctx
-        .send(
-            CreateReply::new()
-                .content(content)
-                .ephemeral(false)
-                .flags(MessageFlags::SUPPRESS_EMBEDS),
-        )
-        .await?)
+#[derive(Debug)]
+pub enum Ephemeral {
+    Public,
+    Private,
 }
 
-impl<'a> CommandCtx<'a> {
-    pub(crate) async fn private_reply<S>(&self, content: S) -> Result<ReplyHandle<'_>, Error>
+impl Display for Ephemeral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Ephemeral::Public => write!(f, "Public"),
+            Ephemeral::Private => write!(f, "Private"),
+        }
+    }
+}
+
+impl<'a> CmdCtx<'a> {
+    pub(crate) async fn reply<S>(
+        &self,
+        ephemeral: Ephemeral,
+        content: S,
+    ) -> Result<ReplyHandle<'_>, Error>
     where
         S: Into<String>,
     {
         let content = content.into();
-        debug!(content, "Sending reply to user");
+        debug!(content, ephemeral = %ephemeral, "Sending Reply");
         Ok(self
             .discord_ctx
             .send(
                 CreateReply::new()
                     .content(content)
-                    .ephemeral(true)
+                    .ephemeral(matches!(ephemeral, Ephemeral::Private))
                     .flags(MessageFlags::SUPPRESS_EMBEDS | MessageFlags::EPHEMERAL),
             )
             .await?)
     }
+
+    pub(crate) async fn edit(&self, reply: &ReplyHandle<'_>, content: String) -> Result<(), Error> {
+        debug!(content, "Editing Reply");
+        reply
+            .edit(self.discord_ctx, CreateReply::default().content(content))
+            .await?;
+        Ok(())
+    }
 }
 
-pub async fn send_message(channel: &Channel, http: &Http, content: &str) -> Result<(), Error> {
-    info!(content_length = content.len(), "Sending chat message");
-    channel
-        .id()
-        .send_message(
-            http,
-            CreateMessage::default()
-                .content(content)
-                .flags(MessageFlags::SUPPRESS_EMBEDS | MessageFlags::EPHEMERAL),
-        )
-        .await?;
+// pub async fn send_message(channel: &Channel, http: &Http, content: &str) -> Result<(), Error> {
+//     info!(content_length = content.len(), "Sending chat message");
+//     channel
+//         .id()
+//         .send_message(
+//             http,
+//             CreateMessage::default()
+//                 .content(content)
+//                 .flags(MessageFlags::SUPPRESS_EMBEDS | MessageFlags::EPHEMERAL),
+//         )
+//         .await?;
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 pub(crate) async fn reply_countdown(
-    ctx: &Context<'_>,
+    ctx: &CmdCtx<'_>,
     initial_content: &str,
     countdown_text: &str,
     final_content: String,
 ) -> Result<(), Error> {
-    let config = &ctx.data().config;
+    let config = &ctx.app_cfg;
     let duration_ms = config.countdown_duration_ms;
     let offset_ms = config.countdown_offset_ms;
     let count = (duration_ms / 1000) as i32;
     let sleep_ms = (duration_ms / count as u64) + offset_ms;
 
-    let reply = public_reply(&ctx, initial_content.to_string()).await?;
+    let reply = ctx
+        .reply(Ephemeral::Public, initial_content.to_string())
+        .await?;
     for i in (1..=count).rev() {
         tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
         let countdown_content = format!(
@@ -155,14 +174,17 @@ pub(crate) async fn reply_countdown(
             Emoji::BIG_SLAP
         );
         reply
-            .edit(*ctx, CreateReply::default().content(countdown_content))
+            .edit(
+                ctx.discord_ctx,
+                CreateReply::default().content(countdown_content),
+            )
             .await
             .ok();
     }
 
     reply
         .edit(
-            *ctx,
+            ctx.discord_ctx,
             CreateReply::default().content(format!("{}{}", initial_content, final_content)),
         )
         .await

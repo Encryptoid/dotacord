@@ -21,11 +21,9 @@ CREATE TABLE IF NOT EXISTS servers
     server_name   TEXT               NOT NULL,
     channel_id    BIGINT             NULL,
     is_sub_week   INTEGER            NOT NULL DEFAULT 0,
-    is_sub_month  INTEGER            NOT NULL DEFAULT 0
+    is_sub_month  INTEGER            NOT NULL DEFAULT 0,
+    is_sub_reload INTEGER            NOT NULL DEFAULT 0
 );
-
-alter table servers add column is_sub_week INTEGER NOT NULL DEFAULT 0;
-alter table servers add column is_sub_month INTEGER NOT NULL DEFAULT 0;
 
 ---
 --- PLAYER_SERVERS
@@ -67,44 +65,18 @@ CREATE TABLE IF NOT EXISTS player_matches
     FOREIGN KEY (player_id) REFERENCES players (player_id)
 );
 
-
-
--- delete from player_matches where match_id = 8495446507;
--- select * from servers;
-select * from player_servers;
-
-
-select * from player_matches
-order by match_id asc;
-
-INSERT INTO player_matches (
-    match_id,
-    player_id,
-    hero_id,
-    kills,
-    deaths,
-    assists,
-    rank,
-    party_size,
-    faction,
-    is_victory,
-    start_time,
-    duration,
-    game_mode,
-    lobby_type
-)
-VALUES (1439386853, 138643094, 80 /* Lone Druid */ , 9, 15, 12, 
-0, 0, 0, 1, 1430526282 /* May 02, 2015 */, 5567, 22, 0)
-
 ---
---- RELOAD_TIMERS
+--- SCHEDULE_EVENTS
 ---
 
-DROP TABLE IF EXISTS reload_timers;
-CREATE TABLE IF NOT EXISTS reload_timers
+DROP TABLE IF EXISTS schedule_events;
+CREATE TABLE IF NOT EXISTS schedule_events
 (
-    id            INT PRIMARY KEY    NOT NULL,
-    server_id     BIGINT             NOT NULL,
-    reload_time   DATE               NOT NULL,
-    reload_type   TEXT               NOT NULL -- Schedule or User
+    event_id     INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    server_id    BIGINT             NOT NULL,
+    event_type   TEXT               NOT NULL, -- LeaderboardWeek, LeaderboardMonth, or Reload
+    event_source TEXT               NOT NULL, -- Manual or Schedule
+    event_time   INTEGER            NOT NULL,
+
+    FOREIGN KEY (server_id) REFERENCES servers (server_id)
 );

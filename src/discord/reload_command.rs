@@ -2,7 +2,7 @@ use poise::ReplyHandle;
 
 use crate::api::api_wrapper;
 use crate::database::player_servers_db;
-use crate::discord::discord_helper::{self, CommandCtx};
+use crate::discord::discord_helper::{self, CmdCtx, Ephemeral};
 use crate::{Context, Error};
 
 #[poise::command(slash_command, prefix_command)]
@@ -13,7 +13,7 @@ pub async fn reload_matches(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
+async fn reload_matches_command(ctx: &CmdCtx<'_>) -> Result<(), Error> {
     let players = player_servers_db::query_server_players(ctx.guild_id).await?;
     if players.is_empty() {
         ctx.discord_ctx
@@ -22,11 +22,14 @@ async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
         return Ok(());
     }
 
-    let reply = ctx.discord_ctx
-        .say(format!(
-            "Reloading player matches for {} players. Message will be edited with progress updates.\n",
-            players.len()
-        ))
+    let reply = ctx
+        .reply(
+            Ephemeral::Public,
+            format!(
+                "Reloading player matches for {} players. Message will be edited with progress updates.\n",
+                players.len()
+            ),
+        )
         .await?;
 
     for player in &players {
@@ -67,7 +70,7 @@ async fn reload_matches_command(ctx: &CommandCtx<'_>) -> Result<(), Error> {
 }
 
 async fn add_to_reply(
-    ctx: &CommandCtx<'_>,
+    ctx: &CmdCtx<'_>,
     reply: &ReplyHandle<'_>,
     append_text: &str,
 ) -> Result<(), Error> {

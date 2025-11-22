@@ -41,7 +41,6 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         player_commands::register_server(),
         subscription_commands::subscribe_channel(),
         subscription_commands::subscribe(),
-        // subscription_commands::subscribe_month(),
     ];
 
     for mut admin_cmd in admin_cmds.into_iter() {

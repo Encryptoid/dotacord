@@ -1,0 +1,1 @@
+Add a `subscribe_reload` subcommand to `subscription_commands.rs` that will allow subscribing to auto reloads, similar to the other subscription types. We will also need to update the database `create_tables.sql` to have a column for is subscribed to reloads in the `Servers` table.
