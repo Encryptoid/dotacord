@@ -1,0 +1,1 @@
+When working on functions in this folder, NEVER put a documentation comment above the function.

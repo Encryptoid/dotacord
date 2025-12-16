@@ -22,6 +22,7 @@ impl Emoji {
     pub const GG_RADIANT: &'static str = "<a:dota_gg_radiant:1388977579490541679>";
     pub const GIFF: &'static str = "<a:dota_giff:1388979692023054506>";
     pub const GUILD: &'static str = "<a:dota_guild:1424892985941950617>";
+    pub const GOODJOB: &'static str = "<a:dota_goodjob:1441827459963289813>";
     pub const HERALD: &'static str = "<:dota_herald:1424830523083325571>";
     pub const IMMORTAL: &'static str = "<:dota_immortal:1388983640213684295>";
     pub const IOSTRESS: &'static str = "<a:dota_iostress:1388977512809369681>";

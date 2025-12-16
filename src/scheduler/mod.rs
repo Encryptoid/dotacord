@@ -27,19 +27,19 @@ pub fn spawn_scheduler(config: AppConfig, http: Arc<serenity::Http>) {
     info!("Spawning scheduler tasks");
     let ctx = Arc::new(SchedulerContext { config, http });
 
-    spawn_unified_task(ctx);
+    start_schedule_task(ctx);
 }
 
-fn spawn_unified_task(ctx: Arc<SchedulerContext>) {
+fn start_schedule_task(ctx: Arc<SchedulerContext>) {
     let interval_mins = ctx.config.scheduler.timer_check_mins;
-    info!(interval_mins, "Starting unified scheduler task");
+    info!(interval_mins, "Starting main scheduler task");
 
     tokio::spawn(async move {
         let mut interval = time::interval(Duration::from_secs(interval_mins * 60));
         loop {
             interval.tick().await;
             if let Err(e) = check_all_tasks(&ctx).await {
-                error!(error = ?e, "Unified scheduler task failed");
+                error!(error = ?e, "Main scheduler task failed");
             }
         }
     });
@@ -49,7 +49,6 @@ async fn check_all_tasks(ctx: &SchedulerContext) -> Result<(), Error> {
     info!("Checking scheduled tasks for all subscribed servers");
 
     let servers = servers_db::query_all_servers().await?;
-
     for server in servers {
         if let Err(e) = check_server_tasks(ctx, &server).await {
             error!(

@@ -28,12 +28,16 @@ pub async fn insert_player_server(
     db: &DatabaseTransaction,
     server_id: i64,
     player_id: i64,
-    player_name: &str,
+    player_name: Option<String>,
+    discord_user_id: Option<i64>,
+    discord_name: String,
 ) -> Result<(), Error> {
     let new_player_server = player_server::ActiveModel {
         server_id: Set(server_id),
         player_id: Set(player_id),
-        player_name: Set(player_name.to_string()),
+        player_name: Set(player_name),
+        discord_user_id: Set(discord_user_id),
+        discord_name: Set(discord_name),
     };
 
     PlayerServer::insert(new_player_server).exec(db).await?;
@@ -93,7 +97,7 @@ pub async fn rename_server_player_by_user_id(
     match player_server {
         Some(ps) => {
             let mut ps_active: player_server::ActiveModel = ps.into();
-            ps_active.player_name = Set(new_name.to_string());
+            ps_active.player_name = Set(Some(new_name.to_string()));
             ps_active.update(db).await?;
 
             info!(

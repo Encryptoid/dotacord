@@ -24,3 +24,5 @@ INSERT INTO player_matches (
 )
 VALUES (1439386853, 138643094, 80 /* Lone Druid */ , 9, 15, 12, 
 0, 0, 0, 1, 1430526282 /* May 02, 2015 */, 5567, 22, 0)
+
+select * from server_events;

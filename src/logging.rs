@@ -53,6 +53,9 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
         .open(&config.log_json_path)?;
     let json_file_layer = default_layer()
         .json()
+        .flatten_event(false)
+        .with_current_span(true)
+        .with_span_list(true)
         .with_writer(Arc::new(json_file))
         .with_timer(timer)
         .with_ansi(false);
@@ -97,6 +100,8 @@ struct SeqLayer {
     endpoint: String,
 }
 
+struct SeqSpanFields(serde_json::Map<String, Value>);
+
 struct SeqVisitor {
     fields: serde_json::Map<String, Value>,
 }
@@ -136,8 +141,11 @@ impl Visit for SeqVisitor {
     }
 }
 
-impl<S: Subscriber> Layer<S> for SeqLayer {
-    fn on_event(&self, event: &Event<'_>, _ctx: Context<'_, S>) {
+impl<S> Layer<S> for SeqLayer
+where
+    S: Subscriber + for<'lookup> tracing_subscriber::registry::LookupSpan<'lookup>,
+{
+    fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
         let metadata = event.metadata();
         let level = match *metadata.level() {
             tracing::Level::TRACE => "Verbose",
@@ -149,6 +157,24 @@ impl<S: Subscriber> Layer<S> for SeqLayer {
 
         let mut visitor = SeqVisitor::new();
         event.record(&mut visitor);
+
+        // Collect span names and fields from the span stack
+        let mut span_names: Vec<String> = Vec::new();
+        if let Some(scope) = ctx.event_scope(event) {
+            for span in scope {
+                let span_name = span.name();
+                span_names.push(span_name.to_string());
+                // Add span marker
+                visitor.fields.insert(span_name.to_string(), json!(true));
+                let extensions = span.extensions();
+                if let Some(fields) = extensions.get::<SeqSpanFields>() {
+                    for (key, value) in &fields.0 {
+                        let prefixed_key = format!("{}.{}", span_name, key);
+                        visitor.fields.insert(prefixed_key, value.clone());
+                    }
+                }
+            }
+        }
 
         let message_template = visitor
             .fields
@@ -196,5 +222,12 @@ impl<S: Subscriber> Layer<S> for SeqLayer {
                 }
             }
         });
+    }
+
+    fn on_new_span(&self, attrs: &tracing::span::Attributes<'_>, id: &tracing::span::Id, ctx: Context<'_, S>) {
+        let span = ctx.span(id).expect("span should exist");
+        let mut visitor = SeqVisitor::new();
+        attrs.record(&mut visitor);
+        span.extensions_mut().insert(SeqSpanFields(visitor.fields));
     }
 }

@@ -2,22 +2,20 @@ use tracing::info;
 
 use crate::api::open_dota_links;
 use crate::database::player_servers_db::PlayerServerModel;
-use crate::database::{database_access, player_servers_db};
+use crate::database::player_servers_db;
 use crate::discord::discord_helper::{get_command_ctx, CmdCtx, Ephemeral};
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::{Context, Error};
 
-#[poise::command(slash_command, guild_only)]
-pub async fn list_players(ctx: Context<'_>) -> Result<(), Error> {
+#[poise::command(slash_command, guild_only, rename = "list")]
+pub async fn list_players_command(ctx: Context<'_>) -> Result<(), Error> {
     let cmd_ctx = get_command_ctx(ctx).await?;
-    list_players_command(&cmd_ctx).await?;
+    list_players(&cmd_ctx).await?;
     Ok(())
 }
 
-async fn list_players_command(ctx: &CmdCtx<'_>) -> Result<(), Error> {
-    let txn = database_access::get_transaction().await?;
+async fn list_players(ctx: &CmdCtx<'_>) -> Result<(), Error> {
     let player_servers = player_servers_db::query_server_players(ctx.guild_id).await?;
-    txn.commit().await?;
 
     let member = ctx
         .discord_ctx
@@ -32,7 +30,7 @@ async fn list_players_command(ctx: &CmdCtx<'_>) -> Result<(), Error> {
     let content = if player_servers.len() > 0 {
         format_list_players(&player_servers)
     } else {
-        "No players are registered for this server, so a leaderboard cannot be generated."
+        "No players are registered for this server. Add one with `/players add` or `/register` yourself."
             .to_string()
     };
     ctx.reply(Ephemeral::Private, content).await?;
@@ -47,11 +45,25 @@ fn format_list_players(players: &Vec<PlayerServerModel>) -> String {
     }
 
     let mut sorted_players: Vec<&PlayerServerModel> = players.iter().collect();
-    sorted_players.sort_by(|a, b| a.player_name.cmp(&b.player_name));
+    sorted_players.sort_by(|a, b| {
+        let name_a = a
+            .player_name
+            .as_ref()
+            .unwrap_or(&a.discord_name);
+        let name_b = b
+            .player_name
+            .as_ref()
+            .unwrap_or(&b.discord_name);
+        name_a.cmp(name_b)
+    });
 
     let nicknames: Vec<String> = sorted_players
         .iter()
-        .map(|s| s.player_name.clone())
+        .map(|s| {
+            s.player_name
+                .clone()
+                .unwrap_or_else(|| s.discord_name.clone())
+        })
         .collect();
     let player_ids: Vec<String> = sorted_players
         .iter()

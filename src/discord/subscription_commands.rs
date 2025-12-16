@@ -1,4 +1,5 @@
 use serenity::all::Channel;
+use serenity::futures::channel;
 use tracing::info;
 
 use crate::database::servers_db;
@@ -14,7 +15,9 @@ enum SubscriptionType {
 
 #[poise::command(
     slash_command,
+    prefix_command,
     subcommands(
+        "subscribe_info",
         "subscribe_channel",
         "subscribe_week",
         "subscribe_month",
@@ -22,7 +25,7 @@ enum SubscriptionType {
     )
 )]
 pub async fn subscribe(_: Context<'_>) -> Result<(), Error> {
-    unreachable!();
+    todo!();
 }
 
 #[poise::command(slash_command, rename = "channel")]
@@ -66,6 +69,40 @@ async fn subscribe_channel_command(ctx: &CmdCtx<'_>, channel: Channel) -> Result
     Ok(())
 }
 
+#[poise::command(slash_command, rename = "info")]
+pub async fn subscribe_info(ctx: Context<'_>) -> Result<(), Error> {
+    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
+    subscribe_info_command(&cmd_ctx).await?;
+    Ok(())
+}
+
+async fn subscribe_info_command(ctx: &CmdCtx<'_>) -> Result<(), Error> {
+    let server = get_server(ctx).await?;
+
+    let mut channel_display = match server.channel_id {
+        Some(id) => format!("This server's updates will be posted in: <#{}>", id),
+        None => format!("No subscription channel configured."),
+    };
+
+    channel_display.push_str("\nSet the channel with `/subscribe_channel <channel_id>`.");
+
+    let response = format!(
+        r#"
+{} - (/subscribe channel)
+{} - Weekly Updates (/subscribe week)
+{} - Monthly Updates (/subscribe month)
+{} - Auto Reload Matches (/subscribe reload)"#,
+        channel_display,
+        discord_helper::format_bool(server.is_sub_week),
+        discord_helper::format_bool(server.is_sub_month),
+        discord_helper::format_bool(server.is_sub_reload)
+    );
+
+    ctx.reply(Ephemeral::Private, str!(response)).await?;
+
+    Ok(())
+}
+
 #[poise::command(slash_command, rename = "week")]
 pub async fn subscribe_week(ctx: Context<'_>) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
@@ -91,9 +128,7 @@ async fn subscribe_command(
     ctx: &CmdCtx<'_>,
     subscription_type: SubscriptionType,
 ) -> Result<(), Error> {
-    let server = servers_db::query_server_by_id(ctx.guild_id)
-        .await?
-        .ok_or(Error::from("Server not found in database"))?;
+    let server = get_server(ctx).await?;
 
     if server.channel_id.is_none() {
         ctx.reply(
@@ -107,19 +142,28 @@ async fn subscribe_command(
 
     let message = match subscription_type {
         SubscriptionType::Week => {
-            let new_state = server.is_sub_week == 0;
+            let new_state = server.is_sub_week;
             servers_db::update_server_sub_week(ctx.guild_id, new_state).await?;
-            format!("{} to Weekly Leaderboard Updates", get_state(new_state))
+            format!(
+                "{} to Weekly Leaderboard Updates",
+                discord_helper::format_bool(new_state)
+            )
         }
         SubscriptionType::Month => {
-            let new_state = server.is_sub_month == 0;
+            let new_state = server.is_sub_month;
             servers_db::update_server_sub_month(ctx.guild_id, new_state).await?;
-            format!("{} to Monthly Leaderboard Updates", get_state(new_state))
+            format!(
+                "{} to Monthly Leaderboard Updates",
+                discord_helper::format_bool(new_state)
+            )
         }
         SubscriptionType::Reload => {
-            let new_state = server.is_sub_reload == 0;
+            let new_state = server.is_sub_reload;
             servers_db::update_server_sub_reload(ctx.guild_id, new_state).await?;
-            format!("{} to Automatic Match Reloads", get_state(new_state))
+            format!(
+                "{} to Automatic Match Reloads",
+                discord_helper::format_bool(new_state)
+            )
         }
     };
 
@@ -128,10 +172,8 @@ async fn subscribe_command(
     Ok(())
 }
 
-fn get_state(is_subscribed: bool) -> &'static str {
-    if is_subscribed {
-        "Subscribed"
-    } else {
-        "Unsubscribed"
-    }
+async fn get_server(ctx: &CmdCtx<'_>) -> Result<servers_db::DiscordServer, Error> {
+    servers_db::query_server_by_id(ctx.guild_id)
+        .await?
+        .ok_or_else(|| Error::from("Server not found in database"))
 }

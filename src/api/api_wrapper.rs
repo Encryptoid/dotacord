@@ -55,7 +55,10 @@ pub async fn reload_player(player: &player_servers_db::PlayerServerModel) -> Rel
 
     ReloadPlayerStat {
         player_id: player.player_id,
-        display_name: player.player_name.clone(),
+        display_name: player
+            .player_name
+            .clone()
+            .unwrap_or_else(|| player.discord_name.clone()),
         result,
     }
 }

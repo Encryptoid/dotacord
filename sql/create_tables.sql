@@ -1,6 +1,11 @@
 PRAGMA foreign_keys = ON;
 
 ---
+--- To create the database, run the following command:
+--- sqlite3 data/dotacord.db ".read sql/create_tables.sql"
+---
+
+---
 --- PLAYERS
 ---
 
@@ -32,9 +37,11 @@ CREATE TABLE IF NOT EXISTS servers
 DROP TABLE IF EXISTS player_servers;
 CREATE TABLE IF NOT EXISTS player_servers
 (
-    player_id    INT    NOT NULL,
-    server_id    BIGINT NOT NULL,
-    player_name  TEXT   NOT NULL,
+    player_id       INT    NOT NULL,
+    server_id       BIGINT NOT NULL,
+    player_name     TEXT   NULL,
+    discord_user_id BIGINT NULL,
+    discord_name    TEXT   NOT NULL,
 
     FOREIGN KEY (player_id) REFERENCES players (player_id),
     FOREIGN KEY (server_id) REFERENCES servers (server_id)

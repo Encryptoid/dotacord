@@ -1,15 +1,28 @@
-use tracing::info;
+use serenity::model::event;
+use tracing::{info, info_span, span};
 
 use crate::api::api_wrapper::{self, ReloadPlayerStat};
 use crate::database::{player_servers_db, servers_db};
 use crate::scheduler::SchedulerContext;
-use crate::Error;
+use crate::{seq_span, Error};
 
 #[tracing::instrument(level = "info", skip(_ctx, server))]
 pub async fn auto_reload(
     _ctx: &SchedulerContext,
     server: &servers_db::DiscordServer,
 ) -> Result<(), Error> {
+    // let span = info_span!("auto_reload",
+    // span_name = "auto_reload",
+    // server_id = server.server_id, name = %server.server_name);
+    let span = seq_span!("auto_reload");
+    let _enter = span.enter();
+
+    info!("About to fetch players");
+    reload_players(server).await?;
+    Ok(())
+}
+
+async fn reload_players(server: &servers_db::DiscordServer) -> Result<(), Error> {
     info!(server_id = server.server_id, "Reloading players for server");
     let players = player_servers_db::query_server_players(server.server_id).await?;
 

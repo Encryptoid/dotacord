@@ -1,13 +1,15 @@
 use std::fmt::Display;
 
+use clap::command;
 use poise::serenity_prelude::MessageFlags;
 use poise::{CreateReply, ReplyHandle};
+use serenity::all::Permissions;
 use tokio::time::Duration;
 use tracing::{debug, info, warn};
 
 use crate::database::servers_db;
 use crate::leaderboard::emoji::Emoji;
-use crate::{Context, Error};
+use crate::{seq_span, Context, Error};
 
 const GUILD_LOOKUP_ERROR: &str = "Could not get guild";
 pub struct CmdCtx<'a> {
@@ -43,6 +45,14 @@ pub(crate) fn channel_id(ctx: &Context<'_>) -> Result<i64, Error> {
     Ok(ctx.channel_id().get() as i64)
 }
 
+pub(crate) fn format_bool(is_subscribed: i32) -> &'static str {
+    if is_subscribed != 0 {
+        Emoji::GOODJOB
+    } else {
+        Emoji::SLEEPING
+    }
+}
+
 pub(crate) async fn validate_command(
     ctx: &Context<'_>,
     guild_id: i64,
@@ -54,14 +64,15 @@ pub(crate) async fn validate_command(
     let user_id = author.user.id.get().to_string();
     let name = author.user.display_name();
 
-    info!(
+    seq_span!(
+        "command",
         command_name = ctx.invoked_command_name(),
         command_text = ctx.invocation_string(),
         user_id,
         name,
-        guild_id,
-        "Command Invoked"
+        guild_id
     );
+    info!("Command Invoked");
 
     if !validate_server(guild_id).await? {
         warn!(
@@ -190,4 +201,25 @@ pub(crate) async fn reply_countdown(
         .await
         .ok();
     Ok(())
+}
+
+pub(super) async fn ensure_admin(ctx: &CmdCtx<'_>) -> Result<bool, Error> {
+    let member = ctx
+        .discord_ctx
+        .author_member()
+        .await
+        .ok_or_else(|| Error::from("Failed to load command author"))?;
+
+    let permissions = member.permissions.unwrap_or_else(Permissions::empty);
+    if permissions.administrator() {
+        return Ok(true);
+    }
+
+    ctx.reply(
+        Ephemeral::Private,
+        "Only server administrators can manage tracked players.",
+    )
+    .await?;
+
+    Ok(false)
 }

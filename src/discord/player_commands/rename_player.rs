@@ -6,18 +6,21 @@ use crate::database::{database_access, player_servers_db};
 use crate::discord::discord_helper::{get_command_ctx, CmdCtx, Ephemeral};
 use crate::{Context, Error};
 
-#[poise::command(slash_command, prefix_command)]
-pub async fn rename_player(
+#[poise::command(slash_command, prefix_command, guild_only, rename = "rename")]
+pub async fn rename_player_command(
     ctx: Context<'_>,
     #[description = "The Discord user"] discord_user: User,
     #[description = "The new custom name for the player on this server"] new_name: String,
 ) -> Result<(), Error> {
     let cmd_ctx = get_command_ctx(ctx).await?;
-    rename_player_command(&cmd_ctx, discord_user, new_name).await?;
+    if !discord_helper::ensure_admin(&cmd_ctx).await? {
+        return Ok(());
+    }
+    rename_player(&cmd_ctx, discord_user, new_name).await?;
     Ok(())
 }
 
-async fn rename_player_command(
+async fn rename_player(
     ctx: &CmdCtx<'_>,
     discord_user: User,
     new_name: String,

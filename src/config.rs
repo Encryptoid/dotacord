@@ -33,8 +33,10 @@ pub struct SchedulerConfig {
 
     pub timer_check_mins: u64,
 
+    /// Reloads matches between the start and end hour (eg. 3, 15, 23, ...)
     pub auto_reload_start_hour: u8,
     pub auto_reload_end_hour: u8,
+    /// Interval between reloads
     pub auto_reload_interval_minutes: u64,
 
     pub weekly_leaderboard_day: Option<u8>,
@@ -44,7 +46,7 @@ pub struct SchedulerConfig {
     pub monthly_leaderboard_hour: Option<u8>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub struct AppConfig {
     pub database_path: PathBuf,

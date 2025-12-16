@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use sea_orm::{
     ConnectOptions, Database, DatabaseConnection, DatabaseTransaction, TransactionTrait,
@@ -15,7 +16,9 @@ pub async fn init_database(path: &Path) -> Result<(), Error> {
 
     let mut opt = ConnectOptions::new(url);
     opt.sqlx_logging(false)
-        .sqlx_logging_level(tracing::log::LevelFilter::Off);
+        .sqlx_logging_level(tracing::log::LevelFilter::Off)
+        // .max_connections(5)
+        .acquire_timeout(Duration::from_secs(60));
 
     let conn = Database::connect(opt).await?;
 

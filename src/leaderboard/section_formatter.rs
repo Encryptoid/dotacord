@@ -18,9 +18,6 @@ pub fn build_winrate_section(
 ) -> Option<LeaderboardSection> {
     let mut sorted_stats: Vec<_> = all_stats.iter().filter(|s| selector(s).1 > 0).collect();
 
-    let mut x = 5;
-    x = 6;
-
     sorted_stats.sort_by(|a, b| {
         let (a_wins, a_total) = selector(a);
         let (b_wins, b_total) = selector(b);

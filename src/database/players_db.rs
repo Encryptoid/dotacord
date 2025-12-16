@@ -11,17 +11,27 @@ pub use player::Model as DotaPlayer;
 pub async fn insert_player_and_server(
     guild_id: i64,
     player_id: i64,
-    name: &str,
+    name: Option<String>,
+    discord_user_id: Option<i64>,
+    discord_name: String,
 ) -> Result<(), Error> {
     let txn = database_access::get_transaction().await?;
 
     info!(
         guild_id,
-        player_id, name, "Inserting Player & Player Server",
+        player_id, ?name, "Inserting Player & Player Server",
     );
 
     try_add_player(&txn, player_id).await?;
-    player_servers_db::insert_player_server(&txn, guild_id, player_id, name).await?;
+    player_servers_db::insert_player_server(
+        &txn,
+        guild_id,
+        player_id,
+        name,
+        discord_user_id,
+        discord_name,
+    )
+    .await?;
 
     txn.commit().await?;
     Ok(())

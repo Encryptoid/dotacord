@@ -1,7 +1,7 @@
 use poise::CreateReply;
 use tracing::info;
 
-use super::super::discord_helper;
+use super::discord_helper;
 use crate::database::{database_access, servers_db};
 use crate::{Context, Error};
 
@@ -28,19 +28,5 @@ pub async fn register_server(ctx: Context<'_>) -> Result<(), Error> {
     ctx.send(CreateReply::new().content(&message).ephemeral(true))
         .await?;
 
-    let tester = Test {
-        my_str: message.clone(),
-    };
-
-    test_func(&tester);
-
-    println!("{}", tester.my_str);
     Ok(())
-}
-struct Test {
-    my_str: String,
-}
-
-fn test_func(x: &Test) {
-    println!("{}", x.my_str);
 }

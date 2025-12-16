@@ -47,7 +47,10 @@ async fn get_player_stats(
         let stats = stats_calculator::player_matches_to_stats(
             &matches,
             player.player_id,
-            player.player_name.clone(),
+            player
+                .player_name
+                .clone()
+                .unwrap_or_else(|| player.discord_name.clone()),
         )?;
         all_stats.push(stats);
     }
