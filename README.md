@@ -44,41 +44,13 @@ Responds with an ephemeral leaderboard for the specified duration.
 
 Forces a reload of API matches for all players on the current server.
 
-#### `/list_players`
-
-Lists all players on the current server.
-
-#### `/register_player <discord_name> <player_id>`
-
-Adds a player to be tracked by the bot. Attempts to load player data from the API and store in the database.
-If no dota matches are found for the player id, the player is not added.
-Similar to register_to_leaderboard, but allows an admin to add other players.
-
-#### `/remove_player <discord_name>`
-
-Removes a player from being tracked by the bot.
-
-#### `/nickname <discord_name> <nickname>`
-
-Renames a tracked player to a new name.
-
-#### Subscription Commmands
-
-##### `/subscribe_channel <channel_id>`
-
-Sets the current server's subscription channel to the specified channel ID.
-
-##### `/subscribe_week`
-
-Toggles weekly leaderboard subscription for the current server.
-
-##### `/subscribe_month`
-
-Toggles monthly leaderboard subscription for the current server.
-
 #### `/server_settings`
 
 Opens an interactive settings panel to configure subscription channel, enable/disable weekly/monthly leaderboards and auto-reload, and set custom schedules per server.
+
+#### `/manage_players`
+
+Opens an interactive panel to manage players on the current server. Allows adding, removing, renaming players, and changing their linked Dota ID or Discord user.
 
 ### Owner Commands
 

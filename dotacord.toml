@@ -11,8 +11,10 @@ seq_endpoint = "http://localhost:5341/api/events/raw"
 
 # Example: register application commands to a single guild for faster testing
 # test_guild = 927307976497315930
-# test_guild = 927307976497315930
-test_channel = 927307976497315930
+
+# Testing Server
+test_guild = 1246056760641585242
+test_channel = 1414209805308133539
 
 # online_status = "online"
 online_status = "invisible"
@@ -20,7 +22,7 @@ online_status = "invisible"
 max_message_length = 1900
 
 max_players_per_server = 5
-clear_commands_on_startup = false
+clear_commands_on_startup = true
 countdown_duration_ms = 5000
 countdown_offset_ms = 50
 

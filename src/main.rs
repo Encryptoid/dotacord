@@ -35,9 +35,9 @@ async fn main() -> Result<(), Error> {
     hero_cache::init_cache(&cfg.heroes_path).expect("Could not init hero cache");
     database_access::init_database(&cfg.database_path).await?;
 
-    // if cfg.clear_commands_on_startup {
-        // clear_commands_from_server(&cfg).await?;
-    // }
+    if cfg.clear_commands_on_startup {
+        clear_commands_from_server(&cfg).await?;
+    }
 
     let cfg_for_scheduler = cfg.clone();
     let commands = discord::commands().await;
@@ -84,28 +84,24 @@ async fn main() -> Result<(), Error> {
 }
 
 async fn clear_commands_from_server(cfg: &config::AppConfig) -> Result<(), Error> {
-    // Create a simple HTTP client using serenity to call the Discord API
+    info!("Clearing commands...");
     let token = Token::from_env(&cfg.discord_api_key)?;
     let http = serenity::http::Http::new(token);
-    // Ensure the Http knows the application id; some serenity methods require it and will
-    // return Http(ApplicationIdMissing) if not set. Fetch current application info and set it.
     let app_info = http.get_current_application_info().await?;
     http.set_application_id(app_info.id);
 
+    let empty_body: Vec<serde_json::Value> = Vec::new();
+
+    info!("Clearing global commands...");
+    http.create_global_commands(&empty_body).await?;
+    info!("Cleared global application commands");
+
     if let Some(guild_id) = cfg.test_guild {
-        let guild = serenity::GuildId::new(guild_id as u64);
-        // Overwrite guild commands with empty list by calling create_guild_commands with an empty Vec
-        // The serenity HTTP method expects a serializable body (e.g. a Vec of command definitions),
-        // so passing an empty Vec will clear/replace existing guild commands.
-        let empty_body: Vec<serde_json::Value> = Vec::new();
+        info!("Clearing guild commands for {}...", guild_id);
+        let guild = serenity::GuildId::new(guild_id);
         http.create_guild_commands(guild, &empty_body).await?;
         info!("Cleared guild application commands for guild {}", guild_id);
-    } else {
-        // Overwrite global (application) commands with empty list by calling create_global_commands with an empty Vec
-        let empty_body: Vec<serde_json::Value> = Vec::new();
-        http.create_global_commands(&empty_body).await?;
-        info!("Cleared global application commands");
     }
-    info!("Cleared commands as requested; exiting.");
-    return Ok(());
+
+    Ok(())
 }

@@ -78,9 +78,9 @@ Discord bot tracking Dota 2 stats via OpenDota API. Built on Poise + Serenity (s
 
 Reference files for command patterns:
 - `src/discord/reload_command.rs` - simple public command
-- `src/discord/player_commands/add_player.rs` - admin command with parameters
 - `src/discord/register_server.rs` - command without standard validation
 - `src/discord/server_settings_command.rs` - interactive panel with buttons/selects
+- `src/discord/manage_players_command.rs` - interactive panel with modals and sub-panels
 
 Key points:
 - Commands use `discord_helper::get_command_ctx(ctx).await?` for server validation
