@@ -76,6 +76,10 @@ Toggles weekly leaderboard subscription for the current server.
 
 Toggles monthly leaderboard subscription for the current server.
 
+#### `/server_settings`
+
+Opens an interactive settings panel to configure subscription channel, enable/disable weekly/monthly leaderboards and auto-reload, and set custom schedules per server.
+
 ### Owner Commands
 
 #### `/register_server <server_id>`

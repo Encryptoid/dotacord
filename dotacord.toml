@@ -32,7 +32,7 @@ timer_check_mins = 1
 [scheduler.auto_reload]
 enabled = false
 start_hour = 15
-end_hour = 17
+end_hour = 23
 interval_minutes = 60
 
 [scheduler.weekly_leaderboard]

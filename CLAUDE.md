@@ -80,6 +80,7 @@ Reference files for command patterns:
 - `src/discord/reload_command.rs` - simple public command
 - `src/discord/player_commands/add_player.rs` - admin command with parameters
 - `src/discord/register_server.rs` - command without standard validation
+- `src/discord/server_settings_command.rs` - interactive panel with buttons/selects
 
 Key points:
 - Commands use `discord_helper::get_command_ctx(ctx).await?` for server validation
