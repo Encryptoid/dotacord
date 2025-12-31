@@ -4,13 +4,8 @@ edition = "2021"
 
 [dependencies]
 # poise = { path = "../ext/poise", features = ["cache"] }
-serenity = { git = "https://github.com/serenity-rs/serenity", rev = "3009d22082cadab93e0f463e9d9868b656cd62bc" }
-# poise = { git = "https://github.com/Encryptoid/poise" }
-poise = { git = "ssh://git@github-encryptoid/Encryptoid/poise" }
-# poise = { git = "https://github.com/serenity-rs/poise", branch = "serenity-next"}
-# poise = { git = "https://github.com/serenity-rs/poise", rev = "17fd1d760ea810ce7f9b1810281a556bea4b340b"}
-# serenity = { git = "https://github.com/serenity-rs/serenity", rev = "17fd1d760ea810ce7f9b1810281a556bea4b340b" }
-# serenity = { git = "https://github.com/serenity-rs/serenity", branch = "17fd1d760ea810ce7f9b1810281a556bea4b340b" }
+poise = { git = "https://github.com/serenity-rs/poise", branch = "serenity-next" }
+serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next" }
 
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "time", "sync"] }
 sea-orm = { version = "1", features = ["sqlx-sqlite", "runtime-tokio-native-tls", "macros"] }

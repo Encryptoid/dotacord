@@ -71,7 +71,7 @@ async fn main() -> Result<(), Error> {
     let mut client =
         serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
             .data(cfg_arc)
-            .framework(framework)
+            .framework(Box::new(framework))
             .await?;
 
     let http_for_scheduler = client.http.clone();

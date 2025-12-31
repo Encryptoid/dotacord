@@ -1,12 +1,12 @@
-database_path = "D:/dev/rust/dotacord/data/dotacord.db"
-heroes_path = "D:/dev/rust/dotacord/data/heroes.json"
+database_path = "~/dev/rust/dotacord/data/dotacord.db"
+heroes_path = "~/dev/rust/dotacord/data/heroes.json"
 api_key_var = "key:dotacord"
 
 # Log level: trace, debug, info, warn, error
 log_level = "info"
 
-log_path = "D:/dev/rust/dotacord/data/dotacord.log"
-log_json_path = "D:/dev/rust/dotacord/data/dotacord.json.log"
+log_path = "~/dev/rust/dotacord/data/dotacord.log"
+log_json_path = "~/dev/rust/dotacord/data/dotacord.json.log"
 seq_endpoint = "http://localhost:5341/api/events/raw"
 
 # Example: register application commands to a single guild for faster testing
@@ -35,3 +35,4 @@ weekly_leaderboard_day = 7
 weekly_leaderboard_hour = 21
 monthly_leaderboard_day = 1
 monthly_leaderboard_hour = 18
+

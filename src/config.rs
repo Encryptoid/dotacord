@@ -67,6 +67,15 @@ pub struct AppConfig {
     pub countdown_offset_ms: u64,
 }
 
+fn expand_tilde(path: &str) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+    if path.starts_with("~/") {
+        let home = env::var("HOME")?;
+        Ok(PathBuf::from(path.replacen("~", &home, 1)))
+    } else {
+        Ok(PathBuf::from(path))
+    }
+}
+
 pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Sync>> {
     let exe_path = env::current_exe()?;
     let config_path = match exe_path.parent() {
@@ -84,12 +93,12 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
     let s = fs::read_to_string(&config_path)?;
     let cfg: FileConfig = toml::from_str(&s)?;
 
-    let database_path = PathBuf::from(&cfg.database_path);
+    let database_path = expand_tilde(&cfg.database_path)?;
     if !database_path.exists() || !database_path.is_file() {
         return Err(format!("Database file does not exist: {}", &cfg.database_path).into());
     }
 
-    let heroes_path = PathBuf::from(&cfg.heroes_path);
+    let heroes_path = expand_tilde(&cfg.heroes_path)?;
     if !heroes_path.exists() || !heroes_path.is_file() {
         return Err(format!("Heroes file does not exist: {}", &cfg.heroes_path).into());
     }
@@ -142,8 +151,8 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
     })
 }
 
-fn log_file_replacements(cfg_path: &str) -> Result<PathBuf, std::io::Error> {
+fn log_file_replacements(cfg_path: &str) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
     let date_str = dates::local_date_yyyy_mm_dd();
     let replaced = cfg_path.replace("{DATE}", &date_str);
-    Ok(PathBuf::from(replaced))
+    expand_tilde(&replaced)
 }
