@@ -7,7 +7,6 @@ mod flip_command;
 pub(crate) mod leaderboard_command;
 mod manage_players_command;
 mod misc_commands;
-mod player_commands;
 mod register_command;
 mod register_server;
 mod reload_command;
@@ -17,7 +16,6 @@ mod subscription_commands;
 pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
     let mut cmds: Vec<poise::Command<crate::Data, crate::Error>> = vec![
         reload_command::reload_matches(),
-        player_commands::players(),
         misc_commands::random_hero(),
         misc_commands::roll(),
         leaderboard_command::leaderboard(),
