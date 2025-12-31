@@ -67,15 +67,14 @@ pub(crate) async fn validate_command(
     let user_id = author.user.id.get().to_string();
     let name = author.user.display_name();
 
-    seq_span!(
-        "command",
+    info!(
         command_name = ctx.invoked_command_name(),
         command_text = ctx.invocation_string(),
         user_id,
         name,
-        guild_id
+        guild_id,
+        "Command Invoked"
     );
-    info!("Command Invoked");
 
     if !validate_server(guild_id).await? {
         warn!(
