@@ -1,6 +1,6 @@
 database_path = "~/dev/rust/dotacord/data/dotacord.db"
 heroes_path = "~/dev/rust/dotacord/data/heroes.json"
-api_key_var = "key:dotacord"
+api_key_var = "KEY_DOTACORD"
 
 # Log level: trace, debug, info, warn, error
 log_level = "info"
@@ -22,7 +22,7 @@ max_message_length = 1900
 max_players_per_server = 5
 clear_commands_on_startup = false
 countdown_duration_ms = 5000
-countdown_offset_ms = 100
+countdown_offset_ms = 50
 
 [scheduler]
 enabled = true
