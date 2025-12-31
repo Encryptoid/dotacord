@@ -274,11 +274,9 @@ fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static
 
 fn build_weekly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
     let content = format!(
-        "## {} **Weekly Leaderboard** {}",
+        "## {} **Weekly Leaderboard** {}\n> Which day of the week to post the Weekly Leaderboard?",
         Emoji::GUILD, Emoji::IMMORTAL
     );
-
-    let toggle_row = build_subpanel_toggle_row(BUTTON_ID_WEEK, state.is_sub_week);
 
     let day_select = build_weekly_day_select(state.weekly_day);
     let day_row = CreateActionRow::SelectMenu(day_select);
@@ -286,12 +284,14 @@ fn build_weekly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'stat
     let hour_select = build_hour_select(SELECT_ID_WEEKLY_HOUR, state.weekly_hour, "Select hour");
     let hour_row = CreateActionRow::SelectMenu(hour_select);
 
+    let toggle_row = build_subpanel_toggle_row(BUTTON_ID_WEEK, state.is_sub_week);
+
     let back_row = build_back_button_row();
 
     let components = vec![
-        CreateComponent::ActionRow(toggle_row),
         CreateComponent::ActionRow(day_row),
         CreateComponent::ActionRow(hour_row),
+        CreateComponent::ActionRow(toggle_row),
         CreateComponent::ActionRow(back_row),
     ];
 
@@ -300,11 +300,9 @@ fn build_weekly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'stat
 
 fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
     let content = format!(
-        "## {} **Monthly Leaderboard** {}",
+        "## {} **Monthly Leaderboard** {}\n> Which day of the month to post the Monthly Leaderboard?",
         Emoji::GUILD, Emoji::TOP1
     );
-
-    let toggle_row = build_subpanel_toggle_row(BUTTON_ID_MONTH, state.is_sub_month);
 
     let week_select = build_monthly_week_select(state.monthly_week);
     let week_row = CreateActionRow::SelectMenu(week_select);
@@ -315,13 +313,15 @@ fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
     let hour_select = build_hour_select(SELECT_ID_MONTHLY_HOUR, state.monthly_hour, "Select hour");
     let hour_row = CreateActionRow::SelectMenu(hour_select);
 
+    let toggle_row = build_subpanel_toggle_row(BUTTON_ID_MONTH, state.is_sub_month);
+
     let back_row = build_back_button_row();
 
     let components = vec![
-        CreateComponent::ActionRow(toggle_row),
         CreateComponent::ActionRow(week_row),
         CreateComponent::ActionRow(weekday_row),
         CreateComponent::ActionRow(hour_row),
+        CreateComponent::ActionRow(toggle_row),
         CreateComponent::ActionRow(back_row),
     ];
 
