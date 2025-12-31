@@ -96,6 +96,7 @@ Key points:
 `dotacord.toml` fields:
 - `api_key_var` - environment variable name containing Discord token
 - `test_guild` - optional guild ID for faster command registration during dev
+- `clear_commands_on_startup` - clears all Discord commands (global + guild) before registering
 - `scheduler.enabled` - master toggle for background task spawning
 - `scheduler.auto_reload.enabled` - toggle auto-reload task
 - `scheduler.weekly_leaderboard.enabled` - toggle weekly leaderboard task
