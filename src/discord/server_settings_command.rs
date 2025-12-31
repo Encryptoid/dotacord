@@ -256,26 +256,17 @@ fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static
     let channel_select = build_channel_select(state.channel_id);
     let channel_row = CreateActionRow::SelectMenu(channel_select);
 
-    let week_btn = build_toggle_button(BUTTON_ID_WEEK, "Weekly", state.is_sub_week);
-    let month_btn = build_toggle_button(BUTTON_ID_MONTH, "Monthly", state.is_sub_month);
-    let reload_btn = build_toggle_button(BUTTON_ID_RELOAD, "Reload", state.is_sub_reload);
-    let toggle_row = CreateActionRow::Buttons(vec![week_btn, month_btn, reload_btn].into());
-
-    let config_weekly = CreateButton::new(BUTTON_ID_CONFIG_WEEKLY)
-        .style(ButtonStyle::Primary)
-        .label("Weekly Schedule".to_string());
-    let config_monthly = CreateButton::new(BUTTON_ID_CONFIG_MONTHLY)
-        .style(ButtonStyle::Primary)
-        .label("Monthly Schedule".to_string());
-    let config_reload = CreateButton::new(BUTTON_ID_CONFIG_RELOAD)
-        .style(ButtonStyle::Primary)
-        .label("Reload Window".to_string());
+    let config_weekly =
+        build_toggle_button(BUTTON_ID_CONFIG_WEEKLY, "Weekly Leaderboard", state.is_sub_week);
+    let config_monthly =
+        build_toggle_button(BUTTON_ID_CONFIG_MONTHLY, "Monthly Leaderboard", state.is_sub_month);
+    let config_reload =
+        build_toggle_button(BUTTON_ID_CONFIG_RELOAD, "Auto Reload", state.is_sub_reload);
     let config_row =
         CreateActionRow::Buttons(vec![config_weekly, config_monthly, config_reload].into());
 
     let components = vec![
         CreateComponent::ActionRow(channel_row),
-        CreateComponent::ActionRow(toggle_row),
         CreateComponent::ActionRow(config_row),
     ];
 
@@ -294,21 +285,22 @@ fn build_weekly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'stat
         day_name, hour_str
     );
 
+    let toggle_btn = build_toggle_button(BUTTON_ID_WEEK, "", state.is_sub_week);
+    let back_btn = CreateButton::new(BUTTON_ID_BACK)
+        .style(ButtonStyle::Secondary)
+        .label("Back".to_string());
+    let button_row = CreateActionRow::Buttons(vec![toggle_btn, back_btn].into());
+
     let day_select = build_weekly_day_select(state.weekly_day);
     let day_row = CreateActionRow::SelectMenu(day_select);
 
     let hour_select = build_hour_select(SELECT_ID_WEEKLY_HOUR, state.weekly_hour, "Select hour");
     let hour_row = CreateActionRow::SelectMenu(hour_select);
 
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let back_row = CreateActionRow::Buttons(vec![back_btn].into());
-
     let components = vec![
+        CreateComponent::ActionRow(button_row),
         CreateComponent::ActionRow(day_row),
         CreateComponent::ActionRow(hour_row),
-        CreateComponent::ActionRow(back_row),
     ];
 
     (content, components)
@@ -327,6 +319,12 @@ fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
         week_str, weekday_str, hour_str
     );
 
+    let toggle_btn = build_toggle_button(BUTTON_ID_MONTH, "", state.is_sub_month);
+    let back_btn = CreateButton::new(BUTTON_ID_BACK)
+        .style(ButtonStyle::Secondary)
+        .label("Back".to_string());
+    let button_row = CreateActionRow::Buttons(vec![toggle_btn, back_btn].into());
+
     let week_select = build_monthly_week_select(state.monthly_week);
     let week_row = CreateActionRow::SelectMenu(week_select);
 
@@ -336,16 +334,11 @@ fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
     let hour_select = build_hour_select(SELECT_ID_MONTHLY_HOUR, state.monthly_hour, "Select hour");
     let hour_row = CreateActionRow::SelectMenu(hour_select);
 
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let back_row = CreateActionRow::Buttons(vec![back_btn].into());
-
     let components = vec![
+        CreateComponent::ActionRow(button_row),
         CreateComponent::ActionRow(week_row),
         CreateComponent::ActionRow(weekday_row),
         CreateComponent::ActionRow(hour_row),
-        CreateComponent::ActionRow(back_row),
     ];
 
     (content, components)
@@ -366,6 +359,12 @@ fn build_reload_panel(state: &ServerState) -> (String, Vec<CreateComponent<'stat
         start_str, end_str
     );
 
+    let toggle_btn = build_toggle_button(BUTTON_ID_RELOAD, "", state.is_sub_reload);
+    let back_btn = CreateButton::new(BUTTON_ID_BACK)
+        .style(ButtonStyle::Secondary)
+        .label("Back".to_string());
+    let button_row = CreateActionRow::Buttons(vec![toggle_btn, back_btn].into());
+
     let start_select =
         build_hour_select(SELECT_ID_RELOAD_START, state.reload_start, "Start hour");
     let start_row = CreateActionRow::SelectMenu(start_select);
@@ -373,30 +372,31 @@ fn build_reload_panel(state: &ServerState) -> (String, Vec<CreateComponent<'stat
     let end_select = build_hour_select(SELECT_ID_RELOAD_END, state.reload_end, "End hour");
     let end_row = CreateActionRow::SelectMenu(end_select);
 
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let back_row = CreateActionRow::Buttons(vec![back_btn].into());
-
     let components = vec![
+        CreateComponent::ActionRow(button_row),
         CreateComponent::ActionRow(start_row),
         CreateComponent::ActionRow(end_row),
-        CreateComponent::ActionRow(back_row),
     ];
 
     (content, components)
 }
 
 fn build_toggle_button(custom_id: &str, label: &str, is_enabled: i32) -> CreateButton<'static> {
-    let (emoji_str, style) = if is_enabled != 0 {
-        (Emoji::GOODJOB, ButtonStyle::Success)
+    let (emoji_str, style, status) = if is_enabled != 0 {
+        (Emoji::GOODJOB, ButtonStyle::Success, "Enabled")
     } else {
-        (Emoji::SILENCE, ButtonStyle::Secondary)
+        (Emoji::SILENCE, ButtonStyle::Secondary, "Disabled")
+    };
+
+    let text = if label.is_empty() {
+        status.to_string()
+    } else {
+        label.to_string()
     };
 
     let mut btn = CreateButton::new(custom_id.to_string())
         .style(style)
-        .label(label.to_string());
+        .label(text);
 
     if let Some(emoji) = discord_helper::parse_custom_emoji(emoji_str) {
         btn = btn.emoji(emoji);
