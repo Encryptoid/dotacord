@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use tracing::info;
 
 use crate::database::{player_matches_db, player_servers_db};
+use crate::leaderboard::emoji::Emoji;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::leaderboard::stats_calculator::{self, PlayerStats};
 use crate::leaderboard::{leaderboard_stats, sections};
@@ -15,11 +16,22 @@ pub async fn get_leaderboard_messages(
 ) -> Result<Vec<String>, Error> {
     let all_stats = leaderboard_stats::get_player_stats(players, &start_utc, &end_utc).await?;
     let sections = sections::get_leaderboard_sections(&duration_label, &all_stats);
-    Ok(sections
-        .iter()
-        .filter_map(|s| s.as_ref())
-        .map(|s| leaderboard_stats::section_to_msg_content(&s))
-        .collect())
+
+    let title = format!(
+        "# {} {}ly Leaderboard {}\n",
+        Emoji::TOP1,
+        duration_label,
+        Emoji::AEGIS2015
+    );
+
+    let mut messages = vec![title];
+    messages.extend(
+        sections
+            .iter()
+            .filter_map(|s| s.as_ref())
+            .map(|s| leaderboard_stats::section_to_msg_content(&s)),
+    );
+    Ok(messages)
 }
 
 async fn get_player_stats(
