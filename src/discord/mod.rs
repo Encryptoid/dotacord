@@ -11,7 +11,6 @@ mod register_command;
 mod register_server;
 mod reload_command;
 mod server_settings_command;
-mod subscription_commands;
 
 pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
     let mut cmds: Vec<poise::Command<crate::Data, crate::Error>> = vec![
@@ -39,8 +38,6 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
 
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![
         register_server::register_server(),
-        subscription_commands::subscribe_channel(),
-        subscription_commands::subscribe(),
         server_settings_command::server_settings(),
         manage_players_command::manage_players(),
     ];
