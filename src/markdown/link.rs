@@ -3,7 +3,9 @@ pub struct Link {
     urls: Vec<String>,
 }
 
-pub const LINK_SYMBOL: &str = "@";
+use crate::leaderboard::emoji::Emoji;
+
+pub const LINK_SYMBOL: &str = Emoji::OPEN_DOTA;
 
 pub fn mask_link(url: &str, symbol: &str) -> String {
     format!("[{}]({})", symbol, url)
