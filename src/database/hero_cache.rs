@@ -37,14 +37,3 @@ pub fn get_hero_by_id(id: i32) -> Option<&'static str> {
         .get(&id)
         .map(|s| s.as_str())
 }
-
-pub fn get_random_hero() -> &'static String {
-    use rand::seq::IteratorRandom;
-    let heroes = HEROES_BY_ID.get().expect("Heroes not initialized");
-    let mut rng = rand::rng();
-    heroes
-        .iter()
-        .map(|h| h.1)
-        .choose(&mut rng)
-        .expect("Could not get random hero")
-}

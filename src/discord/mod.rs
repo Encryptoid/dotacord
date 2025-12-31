@@ -15,7 +15,6 @@ mod server_settings_command;
 pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
     let mut cmds: Vec<poise::Command<crate::Data, crate::Error>> = vec![
         reload_command::reload_matches(),
-        misc_commands::random_hero(),
         misc_commands::roll(),
         leaderboard_command::leaderboard(),
         flip_command::flip(),
