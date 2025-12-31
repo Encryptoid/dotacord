@@ -4,6 +4,7 @@ pub struct Emoji;
 impl Emoji {
     pub const AEGIS2015: &'static str = "<a:dota_aegis2015:1388977461722615878>";
     pub const AGHS_SCEPTER: &'static str = "<a:dota_aghs_scepter:1439218522336133161>";
+    pub const ALCHEMIST_SNOT: &'static str = "<a:dota_alchemist_snot:1456041401736233122>";
     pub const ANCIENT: &'static str = "<:dota_ancient:1424830262134575184>";
     pub const APEXMAGE: &'static str = "<a:dota_apexmage:1439215040992641064>";
     pub const ARCHON: &'static str = "<:dota_archon:1424830536395915294>";

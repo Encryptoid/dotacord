@@ -273,18 +273,12 @@ fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static
 }
 
 fn build_weekly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
-    let day_name = state.weekly_day.map(day_to_name).unwrap_or("Not set");
-    let hour_str = state
-        .weekly_hour
-        .map(|h| format!("{:02}:00 GMT", h))
-        .unwrap_or_else(|| "Not set".to_string());
-
     let content = format!(
-        "## {} **Weekly Leaderboard** {}\nCurrent: `{}` at `{}`",
-        Emoji::GUILD, Emoji::IMMORTAL, day_name, hour_str
+        "## {} **Weekly Leaderboard** {}",
+        Emoji::GUILD, Emoji::IMMORTAL
     );
 
-    let button_row = build_subpanel_button_row(BUTTON_ID_WEEK, state.is_sub_week);
+    let toggle_row = build_subpanel_toggle_row(BUTTON_ID_WEEK, state.is_sub_week);
 
     let day_select = build_weekly_day_select(state.weekly_day);
     let day_row = CreateActionRow::SelectMenu(day_select);
@@ -292,29 +286,25 @@ fn build_weekly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'stat
     let hour_select = build_hour_select(SELECT_ID_WEEKLY_HOUR, state.weekly_hour, "Select hour");
     let hour_row = CreateActionRow::SelectMenu(hour_select);
 
+    let back_row = build_back_button_row();
+
     let components = vec![
-        CreateComponent::ActionRow(button_row),
+        CreateComponent::ActionRow(toggle_row),
         CreateComponent::ActionRow(day_row),
         CreateComponent::ActionRow(hour_row),
+        CreateComponent::ActionRow(back_row),
     ];
 
     (content, components)
 }
 
 fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
-    let week_str = state.monthly_week.map(week_to_name).unwrap_or("Not set");
-    let weekday_str = state.monthly_weekday.map(day_to_name).unwrap_or("Not set");
-    let hour_str = state
-        .monthly_hour
-        .map(|h| format!("{:02}:00 GMT", h))
-        .unwrap_or_else(|| "Not set".to_string());
-
     let content = format!(
-        "## {} **Monthly Leaderboard** {}\n### Current: `{}` `{}` of the month at `{}`",
-        Emoji::GUILD, Emoji::TOP1, week_str, weekday_str, hour_str
+        "## {} **Monthly Leaderboard** {}",
+        Emoji::GUILD, Emoji::TOP1
     );
 
-    let button_row = build_subpanel_button_row(BUTTON_ID_MONTH, state.is_sub_month);
+    let toggle_row = build_subpanel_toggle_row(BUTTON_ID_MONTH, state.is_sub_month);
 
     let week_select = build_monthly_week_select(state.monthly_week);
     let week_row = CreateActionRow::SelectMenu(week_select);
@@ -325,11 +315,14 @@ fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
     let hour_select = build_hour_select(SELECT_ID_MONTHLY_HOUR, state.monthly_hour, "Select hour");
     let hour_row = CreateActionRow::SelectMenu(hour_select);
 
+    let back_row = build_back_button_row();
+
     let components = vec![
-        CreateComponent::ActionRow(button_row),
+        CreateComponent::ActionRow(toggle_row),
         CreateComponent::ActionRow(week_row),
         CreateComponent::ActionRow(weekday_row),
         CreateComponent::ActionRow(hour_row),
+        CreateComponent::ActionRow(back_row),
     ];
 
     (content, components)
@@ -359,12 +352,16 @@ fn build_toggle_button(custom_id: &str, label: &str, is_enabled: i32) -> CreateB
     btn
 }
 
-fn build_subpanel_button_row(toggle_id: &str, is_enabled: i32) -> CreateActionRow<'static> {
+fn build_subpanel_toggle_row(toggle_id: &str, is_enabled: i32) -> CreateActionRow<'static> {
     let toggle_btn = build_toggle_button(toggle_id, "", is_enabled);
+    CreateActionRow::Buttons(vec![toggle_btn].into())
+}
+
+fn build_back_button_row() -> CreateActionRow<'static> {
     let back_btn = CreateButton::new(BUTTON_ID_BACK)
         .style(ButtonStyle::Secondary)
         .label("Back".to_string());
-    CreateActionRow::Buttons(vec![toggle_btn, back_btn].into())
+    CreateActionRow::Buttons(vec![back_btn].into())
 }
 
 fn build_channel_select(current: Option<i64>) -> CreateSelectMenu<'static> {
