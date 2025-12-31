@@ -37,6 +37,11 @@ pub async fn insert_player_and_server(
     Ok(())
 }
 
+pub async fn ensure_player_exists(db: &DatabaseTransaction, player_id: i64) -> Result<(), Error> {
+    try_add_player(db, player_id).await?;
+    Ok(())
+}
+
 async fn try_add_player(db: &DatabaseTransaction, player_id: i64) -> Result<DotaPlayer, Error> {
     if let Some(player) = query_player_by_id(db, player_id).await? {
         info!("Player found, not inserting: {}", player.player_id);

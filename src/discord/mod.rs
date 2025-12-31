@@ -5,6 +5,7 @@ use crate::{Data, Error};
 mod discord_helper;
 mod flip_command;
 pub(crate) mod leaderboard_command;
+mod manage_players_command;
 mod misc_commands;
 mod player_commands;
 mod register_command;
@@ -43,6 +44,7 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         subscription_commands::subscribe_channel(),
         subscription_commands::subscribe(),
         server_settings_command::server_settings(),
+        manage_players_command::manage_players(),
     ];
 
     for mut admin_cmd in admin_cmds.into_iter() {
