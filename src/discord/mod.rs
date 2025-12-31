@@ -7,6 +7,7 @@ mod flip_command;
 pub(crate) mod leaderboard_command;
 mod misc_commands;
 mod player_commands;
+mod register_command;
 mod register_server;
 mod reload_command;
 mod subscription_commands;
@@ -19,6 +20,7 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         misc_commands::roll(),
         leaderboard_command::leaderboard(),
         flip_command::flip(),
+        register_command::register(),
     ];
 
     let test = poise::Command {

@@ -1,9 +1,9 @@
 use serenity::all::Channel;
-use serenity::futures::channel;
 use tracing::info;
 
 use crate::database::servers_db;
 use crate::discord::discord_helper::{self, CmdCtx, Ephemeral};
+use crate::leaderboard::emoji::Emoji;
 use crate::str;
 use crate::{Context, Error};
 
@@ -11,6 +11,14 @@ enum SubscriptionType {
     Week,
     Month,
     Reload,
+}
+
+fn format_subscription(is_subscribed: bool, description: &str) -> String {
+    if is_subscribed {
+        format!("Subscribed to `{}` {}", description, Emoji::GOODJOB)
+    } else {
+        format!("Unsubscribed from `{}` {}", description, Emoji::SLEEPING)
+    }
 }
 
 #[poise::command(
@@ -142,28 +150,19 @@ async fn subscribe_command(
 
     let message = match subscription_type {
         SubscriptionType::Week => {
-            let new_state = server.is_sub_week;
+            let new_state = 1 - server.is_sub_week;
             servers_db::update_server_sub_week(ctx.guild_id, new_state).await?;
-            format!(
-                "{} to Weekly Leaderboard Updates",
-                discord_helper::format_bool(new_state)
-            )
+            format_subscription(new_state == 1, "Weekly Leaderboard Updates")
         }
         SubscriptionType::Month => {
-            let new_state = server.is_sub_month;
+            let new_state = 1 - server.is_sub_month;
             servers_db::update_server_sub_month(ctx.guild_id, new_state).await?;
-            format!(
-                "{} to Monthly Leaderboard Updates",
-                discord_helper::format_bool(new_state)
-            )
+            format_subscription(new_state == 1, "Monthly Leaderboard Updates")
         }
         SubscriptionType::Reload => {
-            let new_state = server.is_sub_reload;
+            let new_state = 1 - server.is_sub_reload;
             servers_db::update_server_sub_reload(ctx.guild_id, new_state).await?;
-            format!(
-                "{} to Automatic Match Reloads",
-                discord_helper::format_bool(new_state)
-            )
+            format_subscription(new_state == 1, "Automatic Match Reloads")
         }
     };
 
@@ -177,3 +176,4 @@ async fn get_server(ctx: &CmdCtx<'_>) -> Result<servers_db::DiscordServer, Error
         .await?
         .ok_or_else(|| Error::from("Server not found in database"))
 }
+
