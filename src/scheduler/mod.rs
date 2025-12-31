@@ -89,7 +89,11 @@ async fn check_reload_task(
     server: &servers_db::DiscordServer,
     now: i64,
 ) -> Result<(), Error> {
-    if !is_in_reload_window(ctx) {
+    if !ctx.config.scheduler.auto_reload.enabled {
+        return Ok(());
+    }
+
+    if !is_in_reload_window(ctx, server) {
         return Ok(());
     }
 
@@ -99,7 +103,7 @@ async fn check_reload_task(
     )
     .await?;
 
-    let interval_secs = ctx.config.scheduler.auto_reload_interval_minutes * 60;
+    let interval_secs = ctx.config.scheduler.auto_reload.interval_minutes * 60;
 
     let should_reload = match last_event {
         None => true,
@@ -132,20 +136,20 @@ async fn check_leaderboard_week_task(
     server: &servers_db::DiscordServer,
     now: i64,
 ) -> Result<(), Error> {
-    let config = &ctx.config.scheduler;
+    let config = &ctx.config.scheduler.weekly_leaderboard;
 
-    let (Some(configured_day), Some(configured_hour)) = (
-        config.weekly_leaderboard_day,
-        config.weekly_leaderboard_hour,
-    ) else {
+    if !config.enabled {
         return Ok(());
-    };
+    }
+
+    let target_day = server.weekly_day.unwrap_or(config.day as i32) as u32;
+    let target_hour = server.weekly_hour.unwrap_or(config.hour as i32) as u32;
 
     let utc_now = Utc::now();
     let weekday = utc_now.weekday().num_days_from_monday() + 1;
     let hour = utc_now.hour();
 
-    if weekday != configured_day as u32 || hour != configured_hour as u32 {
+    if weekday != target_day || hour != target_hour {
         return Ok(());
     }
 
@@ -185,20 +189,27 @@ async fn check_leaderboard_month_task(
     server: &servers_db::DiscordServer,
     now: i64,
 ) -> Result<(), Error> {
-    let config = &ctx.config.scheduler;
+    let config = &ctx.config.scheduler.monthly_leaderboard;
 
-    let (Some(configured_day), Some(configured_hour)) = (
-        config.monthly_leaderboard_day,
-        config.monthly_leaderboard_hour,
-    ) else {
+    if !config.enabled {
         return Ok(());
-    };
+    }
+
+    let target_hour = server.monthly_hour.unwrap_or(config.hour as i32) as u32;
 
     let utc_now = Utc::now();
-    let day_of_month = utc_now.day();
     let hour = utc_now.hour();
 
-    if day_of_month != configured_day as u32 || hour != configured_hour as u32 {
+    if hour != target_hour {
+        return Ok(());
+    }
+
+    let is_target_day = match (server.monthly_week, server.monthly_weekday) {
+        (Some(week), Some(weekday)) => is_nth_weekday_of_month(utc_now, week, weekday),
+        _ => utc_now.day() == config.day as u32,
+    };
+
+    if !is_target_day {
         return Ok(());
     }
 
@@ -235,12 +246,48 @@ async fn check_leaderboard_month_task(
     Ok(())
 }
 
-fn is_in_reload_window(ctx: &SchedulerContext) -> bool {
+fn is_nth_weekday_of_month(date: chrono::DateTime<Utc>, week: i32, weekday: i32) -> bool {
+    let current_weekday = date.weekday().num_days_from_monday() + 1;
+    if current_weekday != weekday as u32 {
+        return false;
+    }
+
+    let day = date.day() as i32;
+
+    if week == 5 {
+        let days_in_month = days_in_month(date.year(), date.month());
+        let days_remaining = days_in_month - day;
+        return days_remaining < 7;
+    }
+
+    let week_of_month = (day - 1) / 7 + 1;
+    week_of_month == week
+}
+
+fn days_in_month(year: i32, month: u32) -> i32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 30,
+    }
+}
+
+fn is_in_reload_window(ctx: &SchedulerContext, server: &servers_db::DiscordServer) -> bool {
     let local_time = Local::now();
     let current_hour = local_time.hour() as u8;
 
-    let start_hour = ctx.config.scheduler.auto_reload_start_hour;
-    let end_hour = ctx.config.scheduler.auto_reload_end_hour;
+    let config_start = ctx.config.scheduler.auto_reload.start_hour;
+    let config_end = ctx.config.scheduler.auto_reload.end_hour;
+
+    let start_hour = server.reload_start.map(|h| h as u8).unwrap_or(config_start);
+    let end_hour = server.reload_end.map(|h| h as u8).unwrap_or(config_end);
 
     let is_in_window = if start_hour <= end_hour {
         current_hour >= start_hour && current_hour < end_hour

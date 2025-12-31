@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## [MANDATORY] Convention-First Development
+
+Before writing ANY new code, you MUST:
+
+1. **Find existing examples** - Search for similar code patterns in the codebase (use Grep/Glob)
+2. **Read multiple examples** - Read at least 2-3 existing files that do similar things
+3. **Match exactly** - Copy the exact style, structure, attributes, imports, and patterns from existing code
+4. **Never invent** - Do not add attributes, parameters, or patterns not present in existing code
+5. **When in doubt, search** - If unsure about any convention, search the codebase first
+
+This applies to: function signatures, attributes, imports, error handling, naming, file structure, and all other patterns.
+
 ## Build & Run
 
 ```bash
@@ -62,34 +74,28 @@ Discord bot tracking Dota 2 stats via OpenDota API. Built on Poise + Serenity (s
 
 **Database query naming:** `query_*`, `insert_*`, `update_*`, `delete_*`
 
-## Discord Command Pattern
+## Discord Commands
 
-Every command follows this structure:
+Reference files for command patterns:
+- `src/discord/reload_command.rs` - simple public command
+- `src/discord/player_commands/add_player.rs` - admin command with parameters
+- `src/discord/register_server.rs` - command without standard validation
 
-```rust
-#[poise::command(slash_command)]
-#[tracing::instrument(name = "COMMAND_NAME", level = "trace", skip(ctx))]
-pub async fn my_cmd(ctx: Context<'_>) -> Result<(), Error> {
-    let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
-    // command logic
-    cmd_ctx.private_reply(response).await?;
-    Ok(())
-}
-```
+Key points:
+- Commands use `discord_helper::get_command_ctx(ctx).await?` for server validation
+- User-facing errors: reply then `return Ok(())` - never bubble to Poise
+- Admin commands get `Permissions::ADMINISTRATOR` in `discord::commands()`
 
-- All commands use `discord_helper::get_command_ctx(ctx).await?` which validates server registration
-- User-facing errors: reply via `discord_helper` then `return Ok(())` - never bubble to Poise
-- Admin commands defined in `discord::commands()` get `Permissions::ADMINISTRATOR`
-
-## Utility Macros
-
-- `fmt!()` - alias for `format!()`
-- `str!()` - alias for `.to_string()`
+**Always read existing command files before writing new ones.**
 
 ## Configuration
 
 `dotacord.toml` fields:
 - `api_key_var` - environment variable name containing Discord token
 - `test_guild` - optional guild ID for faster command registration during dev
-- `scheduler.enabled` - controls background task spawning
+- `scheduler.enabled` - master toggle for background task spawning
+- `scheduler.auto_reload.enabled` - toggle auto-reload task
+- `scheduler.weekly_leaderboard.enabled` - toggle weekly leaderboard task
+- `scheduler.monthly_leaderboard.enabled` - toggle monthly leaderboard task
 - `max_message_length` - Discord message batching threshold (default 1900)
+

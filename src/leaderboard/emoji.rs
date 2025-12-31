@@ -35,6 +35,7 @@ impl Emoji {
     pub const QIZ_WAT: &'static str = "<a:dota_qiz_wat:1388977490776821891>";
     pub const SENTRY_WARD: &'static str = "<a:dota_sentry_ward:1388977529334927360>";
     pub const SICK: &'static str = "<a:dota_sick:1388916558553677824>";
+    pub const SILENCE: &'static str = "<a:dota_silence:1455976251926908989>";
     pub const SLEEPING: &'static str = "<a:dota_sleeping:1388977587744673975>";
     pub const SMUGHANIM: &'static str = "<a:dota_smughanim:1439217389769326645>";
     pub const THROWGAME: &'static str = "<a:dota_throwgame:1424176760500785183>";
@@ -45,3 +46,4 @@ impl Emoji {
     pub const WIZ_HELP: &'static str = "<a:dota_wiz_help:1388982765629739121>";
     pub const WIZ_WOW: &'static str = "<a:dota_wiz_wow:1388977497936236594>";
 }
+

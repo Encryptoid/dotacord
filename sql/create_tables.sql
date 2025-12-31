@@ -27,7 +27,14 @@ CREATE TABLE IF NOT EXISTS servers
     channel_id    BIGINT             NULL,
     is_sub_week   INTEGER            NOT NULL DEFAULT 0,
     is_sub_month  INTEGER            NOT NULL DEFAULT 0,
-    is_sub_reload INTEGER            NOT NULL DEFAULT 0
+    is_sub_reload INTEGER            NOT NULL DEFAULT 0,
+    weekly_day      INTEGER            NULL,
+    weekly_hour     INTEGER            NULL,
+    monthly_week    INTEGER            NULL,
+    monthly_weekday INTEGER            NULL,
+    monthly_hour    INTEGER            NULL,
+    reload_start    INTEGER            NULL,
+    reload_end      INTEGER            NULL
 );
 
 ---

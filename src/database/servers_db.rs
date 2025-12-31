@@ -25,6 +25,13 @@ pub async fn insert_server(
         is_sub_week: Set(0),
         is_sub_month: Set(0),
         is_sub_reload: Set(0),
+        weekly_day: Set(None),
+        weekly_hour: Set(None),
+        monthly_week: Set(None),
+        monthly_weekday: Set(None),
+        monthly_hour: Set(None),
+        reload_start: Set(None),
+        reload_end: Set(None),
     };
 
     Server::insert(new_server).exec(txn).await?;
@@ -90,6 +97,104 @@ pub async fn update_server_sub_reload(server_id: i64, is_sub_reload: i32) -> Res
     if let Some(s) = server {
         let mut s_active: server::ActiveModel = s.into();
         s_active.is_sub_reload = Set(is_sub_reload);
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_weekly_day(server_id: i64, weekly_day: i32) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.weekly_day = Set(Some(weekly_day));
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_weekly_hour(server_id: i64, weekly_hour: i32) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.weekly_hour = Set(Some(weekly_hour));
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_monthly_week(server_id: i64, monthly_week: i32) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.monthly_week = Set(Some(monthly_week));
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_monthly_weekday(server_id: i64, monthly_weekday: i32) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.monthly_weekday = Set(Some(monthly_weekday));
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_monthly_hour(server_id: i64, monthly_hour: i32) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.monthly_hour = Set(Some(monthly_hour));
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_reload_start(server_id: i64, reload_start: i32) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.reload_start = Set(Some(reload_start));
+        s_active.update(&txn).await?;
+    }
+
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn update_server_reload_end(server_id: i64, reload_end: i32) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let server = Server::find_by_id(server_id).one(&txn).await?;
+
+    if let Some(s) = server {
+        let mut s_active: server::ActiveModel = s.into();
+        s_active.reload_end = Set(Some(reload_end));
         s_active.update(&txn).await?;
     }
 

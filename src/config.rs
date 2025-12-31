@@ -30,20 +30,32 @@ struct FileConfig {
 pub struct SchedulerConfig {
     pub enabled: bool,
     pub heartbeat_interval_minutes: u64,
-
     pub timer_check_mins: u64,
+    pub auto_reload: AutoReloadConfig,
+    pub weekly_leaderboard: WeeklyLeaderboardConfig,
+    pub monthly_leaderboard: MonthlyLeaderboardConfig,
+}
 
-    /// Reloads matches between the start and end hour (eg. 3, 15, 23, ...)
-    pub auto_reload_start_hour: u8,
-    pub auto_reload_end_hour: u8,
-    /// Interval between reloads
-    pub auto_reload_interval_minutes: u64,
+#[derive(Debug, Deserialize, Clone)]
+pub struct AutoReloadConfig {
+    pub enabled: bool,
+    pub start_hour: u8,
+    pub end_hour: u8,
+    pub interval_minutes: u64,
+}
 
-    pub weekly_leaderboard_day: Option<u8>,
-    pub weekly_leaderboard_hour: Option<u8>,
+#[derive(Debug, Deserialize, Clone)]
+pub struct WeeklyLeaderboardConfig {
+    pub enabled: bool,
+    pub day: u8,
+    pub hour: u8,
+}
 
-    pub monthly_leaderboard_day: Option<u8>,
-    pub monthly_leaderboard_hour: Option<u8>,
+#[derive(Debug, Deserialize, Clone)]
+pub struct MonthlyLeaderboardConfig {
+    pub enabled: bool,
+    pub day: u8,
+    pub hour: u8,
 }
 
 #[derive(Clone, Debug)]

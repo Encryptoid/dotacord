@@ -10,6 +10,7 @@ mod player_commands;
 mod register_command;
 mod register_server;
 mod reload_command;
+mod server_settings_command;
 mod subscription_commands;
 
 pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
@@ -41,6 +42,7 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         register_server::register_server(),
         subscription_commands::subscribe_channel(),
         subscription_commands::subscribe(),
+        server_settings_command::server_settings(),
     ];
 
     for mut admin_cmd in admin_cmds.into_iter() {

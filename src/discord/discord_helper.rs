@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
-use clap::command;
 use poise::serenity_prelude::MessageFlags;
 use poise::{CreateReply, ReplyHandle};
-use serenity::all::Permissions;
+use serenity::all::{Permissions, ReactionType};
 use tokio::time::Duration;
 use tracing::{debug, info, warn};
 
@@ -51,6 +50,10 @@ pub(crate) fn format_bool(is_subscribed: i32) -> &'static str {
     } else {
         Emoji::SLEEPING
     }
+}
+
+pub(crate) fn parse_custom_emoji(emoji_str: &str) -> Option<ReactionType> {
+    ReactionType::try_from(emoji_str).ok()
 }
 
 pub(crate) async fn validate_command(

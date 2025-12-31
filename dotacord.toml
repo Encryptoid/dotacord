@@ -14,8 +14,8 @@ seq_endpoint = "http://localhost:5341/api/events/raw"
 # test_guild = 927307976497315930
 test_channel = 927307976497315930
 
-online_status = "online"
-# online_status = "invisible"
+# online_status = "online"
+online_status = "invisible"
 
 max_message_length = 1900
 
@@ -28,11 +28,20 @@ countdown_offset_ms = 50
 enabled = true
 heartbeat_interval_minutes = 3
 timer_check_mins = 1
-auto_reload_start_hour = 15
-auto_reload_end_hour = 17
-auto_reload_interval_minutes = 5
-weekly_leaderboard_day = 7
-weekly_leaderboard_hour = 21
-monthly_leaderboard_day = 1
-monthly_leaderboard_hour = 18
+
+[scheduler.auto_reload]
+enabled = false
+start_hour = 15
+end_hour = 17
+interval_minutes = 60
+
+[scheduler.weekly_leaderboard]
+enabled = true
+day = 7
+hour = 21
+
+[scheduler.monthly_leaderboard]
+enabled = true
+day = 1
+hour = 18
 
