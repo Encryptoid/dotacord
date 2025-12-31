@@ -22,20 +22,6 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         register_command::register(),
     ];
 
-    let test = poise::Command {
-        name: std::borrow::Cow::Borrowed("test"),
-        description: Some(std::borrow::Cow::Borrowed("Test command for development")),
-        slash_action: Some(|ctx| {
-            Box::pin(async move {
-                ctx.say("Test command executed").await.unwrap();
-                Ok(())
-            })
-        }),
-        ..Default::default()
-    };
-
-    cmds.push(test);
-
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![
         register_server::register_server(),
         server_settings_command::server_settings(),
