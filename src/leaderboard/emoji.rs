@@ -27,9 +27,11 @@ impl Emoji {
     pub const IMMORTAL: &'static str = "<:dota_immortal:1388983640213684295>";
     pub const IOSTRESS: &'static str = "<a:dota_iostress:1388977512809369681>";
     pub const MIDAS: &'static str = "<a:dota_midas:1388977520690466939>";
+    pub const NERD: &'static str = "<a:dota_nerd:1456031246571405364>";
     pub const OBSERVER_WARD: &'static str = "<a:dota_observer_ward:1388977541036904638>";
     pub const ONLOOKER: &'static str = "<a:dota_onlooker:1424891475577147424>";
     pub const OPEN_DOTA: &'static str = "<:open_dota:1424835968682426492>";
+    pub const ORACLE_BURN: &'static str = "<a:dota_oracleburn:1456031245275369637>";
     pub const POGHANIM: &'static str = "<a:dota_poghanim:1439217388045471835>";
     pub const POOP: &'static str = "<a:dota_poop:1388977572196384912>";
     pub const QIZ_WAT: &'static str = "<a:dota_qiz_wat:1388977490776821891>";
@@ -39,6 +41,7 @@ impl Emoji {
     pub const SLEEPING: &'static str = "<a:dota_sleeping:1388977587744673975>";
     pub const SMUGHANIM: &'static str = "<a:dota_smughanim:1439217389769326645>";
     pub const THROWGAME: &'static str = "<a:dota_throwgame:1424176760500785183>";
+    pub const TOP1: &'static str = "<:dota_top1:1456039972858761322>";
     pub const TP: &'static str = "<a:dota_tp:1424176300695752806>";
     pub const UNCALIBRATED: &'static str = "<:dota_uncalibrated:1424854032446652496>";
     pub const UNICORN: &'static str = "<a:dota_unicorn:1388977563237355530>";

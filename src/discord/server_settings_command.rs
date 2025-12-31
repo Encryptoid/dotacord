@@ -6,6 +6,7 @@ use serenity::all::{
     CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind,
     CreateSelectMenuOption, GenericChannelId,
 };
+use tracing::info;
 
 use crate::database::servers_db;
 use crate::discord::discord_helper::{self, CmdCtx};
@@ -22,12 +23,9 @@ const SELECT_ID_WEEKLY_HOUR: &str = "dotacord_settings_weekly_hour";
 const SELECT_ID_MONTHLY_WEEK: &str = "dotacord_settings_monthly_week";
 const SELECT_ID_MONTHLY_WEEKDAY: &str = "dotacord_settings_monthly_weekday";
 const SELECT_ID_MONTHLY_HOUR: &str = "dotacord_settings_monthly_hour";
-const SELECT_ID_RELOAD_START: &str = "dotacord_settings_reload_start";
-const SELECT_ID_RELOAD_END: &str = "dotacord_settings_reload_end";
 
 const BUTTON_ID_CONFIG_WEEKLY: &str = "dotacord_config_weekly";
 const BUTTON_ID_CONFIG_MONTHLY: &str = "dotacord_config_monthly";
-const BUTTON_ID_CONFIG_RELOAD: &str = "dotacord_config_reload";
 const BUTTON_ID_BACK: &str = "dotacord_back";
 
 #[derive(Clone, Copy, PartialEq)]
@@ -35,7 +33,6 @@ enum Panel {
     Main,
     Weekly,
     Monthly,
-    Reload,
 }
 
 struct ServerState {
@@ -48,8 +45,6 @@ struct ServerState {
     monthly_week: Option<i32>,
     monthly_weekday: Option<i32>,
     monthly_hour: Option<i32>,
-    reload_start: Option<i32>,
-    reload_end: Option<i32>,
 }
 
 #[poise::command(slash_command, guild_only)]
@@ -77,8 +72,6 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
         monthly_week: server.monthly_week,
         monthly_weekday: server.monthly_weekday,
         monthly_hour: server.monthly_hour,
-        reload_start: server.reload_start,
-        reload_end: server.reload_end,
     };
 
     let mut current_panel = Panel::Main;
@@ -107,23 +100,26 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
             BUTTON_ID_WEEK => {
                 state.is_sub_week = 1 - state.is_sub_week;
                 servers_db::update_server_sub_week(ctx.guild_id, state.is_sub_week).await?;
+                let status = if state.is_sub_week != 0 { "enabled" } else { "disabled" };
+                info!(server_id = ctx.guild_id, status, "Weekly leaderboard subscription updated");
             }
             BUTTON_ID_MONTH => {
                 state.is_sub_month = 1 - state.is_sub_month;
                 servers_db::update_server_sub_month(ctx.guild_id, state.is_sub_month).await?;
+                let status = if state.is_sub_month != 0 { "enabled" } else { "disabled" };
+                info!(server_id = ctx.guild_id, status, "Monthly leaderboard subscription updated");
             }
             BUTTON_ID_RELOAD => {
                 state.is_sub_reload = 1 - state.is_sub_reload;
                 servers_db::update_server_sub_reload(ctx.guild_id, state.is_sub_reload).await?;
+                let status = if state.is_sub_reload != 0 { "enabled" } else { "disabled" };
+                info!(server_id = ctx.guild_id, status, "Auto-reload subscription updated");
             }
             BUTTON_ID_CONFIG_WEEKLY => {
                 current_panel = Panel::Weekly;
             }
             BUTTON_ID_CONFIG_MONTHLY => {
                 current_panel = Panel::Monthly;
-            }
-            BUTTON_ID_CONFIG_RELOAD => {
-                current_panel = Panel::Reload;
             }
             BUTTON_ID_BACK => {
                 current_panel = Panel::Main;
@@ -134,6 +130,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                         let id = channel_id.get() as i64;
                         state.channel_id = Some(id);
                         servers_db::update_server_channel(ctx.guild_id, id).await?;
+                        info!(server_id = ctx.guild_id, channel_id = id, "Leaderboard channel updated");
                     }
                 }
             }
@@ -143,6 +140,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                         if let Ok(day) = value.parse::<i32>() {
                             state.weekly_day = Some(day);
                             servers_db::update_server_weekly_day(ctx.guild_id, day).await?;
+                            info!(server_id = ctx.guild_id, day, "Weekly schedule day updated");
                         }
                     }
                 }
@@ -153,6 +151,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                         if let Ok(hour) = value.parse::<i32>() {
                             state.weekly_hour = Some(hour);
                             servers_db::update_server_weekly_hour(ctx.guild_id, hour).await?;
+                            info!(server_id = ctx.guild_id, hour, "Weekly schedule hour updated");
                         }
                     }
                 }
@@ -163,6 +162,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                         if let Ok(week) = value.parse::<i32>() {
                             state.monthly_week = Some(week);
                             servers_db::update_server_monthly_week(ctx.guild_id, week).await?;
+                            info!(server_id = ctx.guild_id, week, "Monthly schedule week updated");
                         }
                     }
                 }
@@ -173,6 +173,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                         if let Ok(weekday) = value.parse::<i32>() {
                             state.monthly_weekday = Some(weekday);
                             servers_db::update_server_monthly_weekday(ctx.guild_id, weekday).await?;
+                            info!(server_id = ctx.guild_id, weekday, "Monthly schedule weekday updated");
                         }
                     }
                 }
@@ -183,26 +184,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                         if let Ok(hour) = value.parse::<i32>() {
                             state.monthly_hour = Some(hour);
                             servers_db::update_server_monthly_hour(ctx.guild_id, hour).await?;
-                        }
-                    }
-                }
-            }
-            SELECT_ID_RELOAD_START => {
-                if let ComponentInteractionDataKind::StringSelect { values } = &interaction.data.kind {
-                    if let Some(value) = values.first() {
-                        if let Ok(hour) = value.parse::<i32>() {
-                            state.reload_start = Some(hour);
-                            servers_db::update_server_reload_start(ctx.guild_id, hour).await?;
-                        }
-                    }
-                }
-            }
-            SELECT_ID_RELOAD_END => {
-                if let ComponentInteractionDataKind::StringSelect { values } = &interaction.data.kind {
-                    if let Some(value) = values.first() {
-                        if let Ok(hour) = value.parse::<i32>() {
-                            state.reload_end = Some(hour);
-                            servers_db::update_server_reload_end(ctx.guild_id, hour).await?;
+                            info!(server_id = ctx.guild_id, hour, "Monthly schedule hour updated");
                         }
                     }
                 }
@@ -241,33 +223,50 @@ fn build_panel(panel: Panel, state: &ServerState) -> (String, Vec<CreateComponen
         Panel::Main => build_main_panel(state),
         Panel::Weekly => build_weekly_panel(state),
         Panel::Monthly => build_monthly_panel(state),
-        Panel::Reload => build_reload_panel(state),
     }
 }
 
 fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
-    let channel_info = match state.channel_id {
-        Some(id) => format!("Subscription channel: <#{}>", id),
-        None => String::from("No subscription channel configured"),
-    };
+    let content = format!(
+        "# {} **Dotacord Server Settings** {}",
+        Emoji::NERD, Emoji::ORACLE_BURN
+    );
 
-    let content = format!("**Server Settings**\n\n{}", channel_info);
-
-    let channel_select = build_channel_select(state.channel_id);
-    let channel_row = CreateActionRow::SelectMenu(channel_select);
+    let mut channel_label = CreateButton::new("dotacord_channel_label")
+        .style(ButtonStyle::Primary)
+        .label("Leaderboard Channel".to_string())
+        .disabled(true);
+    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::IMMORTAL) {
+        channel_label = channel_label.emoji(emoji);
+    }
+    let channel_label_row = CreateActionRow::Buttons(vec![channel_label].into());
 
     let config_weekly =
         build_toggle_button(BUTTON_ID_CONFIG_WEEKLY, "Weekly Leaderboard", state.is_sub_week);
     let config_monthly =
         build_toggle_button(BUTTON_ID_CONFIG_MONTHLY, "Monthly Leaderboard", state.is_sub_month);
-    let config_reload =
-        build_toggle_button(BUTTON_ID_CONFIG_RELOAD, "Auto Reload", state.is_sub_reload);
+    let reload_toggle =
+        build_toggle_button(BUTTON_ID_RELOAD, "Auto Reload", state.is_sub_reload);
     let config_row =
-        CreateActionRow::Buttons(vec![config_weekly, config_monthly, config_reload].into());
+        CreateActionRow::Buttons(vec![config_weekly, config_monthly, reload_toggle].into());
+
+    let channel_select = build_channel_select(state.channel_id);
+    let channel_row = CreateActionRow::SelectMenu(channel_select);
+
+    let mut sub_label = CreateButton::new("dotacord_sub_label")
+        .style(ButtonStyle::Primary)
+        .label("Subscriptions".to_string())
+        .disabled(true);
+    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::GUILD) {
+        sub_label = sub_label.emoji(emoji);
+    }
+    let sub_label_row = CreateActionRow::Buttons(vec![sub_label].into());
 
     let components = vec![
-        CreateComponent::ActionRow(channel_row),
+        CreateComponent::ActionRow(sub_label_row),
         CreateComponent::ActionRow(config_row),
+        CreateComponent::ActionRow(channel_label_row),
+        CreateComponent::ActionRow(channel_row),
     ];
 
     (content, components)
@@ -277,19 +276,15 @@ fn build_weekly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'stat
     let day_name = state.weekly_day.map(day_to_name).unwrap_or("Not set");
     let hour_str = state
         .weekly_hour
-        .map(|h| format!("{:02}:00 UTC", h))
+        .map(|h| format!("{:02}:00 GMT", h))
         .unwrap_or_else(|| "Not set".to_string());
 
     let content = format!(
-        "**Weekly Leaderboard Schedule**\n\nCurrent: {} at {}",
-        day_name, hour_str
+        "## {} **Weekly Leaderboard** {}\nCurrent: `{}` at `{}`",
+        Emoji::GUILD, Emoji::IMMORTAL, day_name, hour_str
     );
 
-    let toggle_btn = build_toggle_button(BUTTON_ID_WEEK, "", state.is_sub_week);
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let button_row = CreateActionRow::Buttons(vec![toggle_btn, back_btn].into());
+    let button_row = build_subpanel_button_row(BUTTON_ID_WEEK, state.is_sub_week);
 
     let day_select = build_weekly_day_select(state.weekly_day);
     let day_row = CreateActionRow::SelectMenu(day_select);
@@ -311,19 +306,15 @@ fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
     let weekday_str = state.monthly_weekday.map(day_to_name).unwrap_or("Not set");
     let hour_str = state
         .monthly_hour
-        .map(|h| format!("{:02}:00 UTC", h))
+        .map(|h| format!("{:02}:00 GMT", h))
         .unwrap_or_else(|| "Not set".to_string());
 
     let content = format!(
-        "**Monthly Leaderboard Schedule**\n\nCurrent: {} {} at {}",
-        week_str, weekday_str, hour_str
+        "## {} **Monthly Leaderboard** {}\n### Current: `{}` `{}` of the month at `{}`",
+        Emoji::GUILD, Emoji::TOP1, week_str, weekday_str, hour_str
     );
 
-    let toggle_btn = build_toggle_button(BUTTON_ID_MONTH, "", state.is_sub_month);
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let button_row = CreateActionRow::Buttons(vec![toggle_btn, back_btn].into());
+    let button_row = build_subpanel_button_row(BUTTON_ID_MONTH, state.is_sub_month);
 
     let week_select = build_monthly_week_select(state.monthly_week);
     let week_row = CreateActionRow::SelectMenu(week_select);
@@ -339,43 +330,6 @@ fn build_monthly_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
         CreateComponent::ActionRow(week_row),
         CreateComponent::ActionRow(weekday_row),
         CreateComponent::ActionRow(hour_row),
-    ];
-
-    (content, components)
-}
-
-fn build_reload_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
-    let start_str = state
-        .reload_start
-        .map(|h| format!("{:02}:00", h))
-        .unwrap_or_else(|| "Not set".to_string());
-    let end_str = state
-        .reload_end
-        .map(|h| format!("{:02}:00", h))
-        .unwrap_or_else(|| "Not set".to_string());
-
-    let content = format!(
-        "**Auto-Reload Time Window**\n\nCurrent: {} to {} (local time)",
-        start_str, end_str
-    );
-
-    let toggle_btn = build_toggle_button(BUTTON_ID_RELOAD, "", state.is_sub_reload);
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let button_row = CreateActionRow::Buttons(vec![toggle_btn, back_btn].into());
-
-    let start_select =
-        build_hour_select(SELECT_ID_RELOAD_START, state.reload_start, "Start hour");
-    let start_row = CreateActionRow::SelectMenu(start_select);
-
-    let end_select = build_hour_select(SELECT_ID_RELOAD_END, state.reload_end, "End hour");
-    let end_row = CreateActionRow::SelectMenu(end_select);
-
-    let components = vec![
-        CreateComponent::ActionRow(button_row),
-        CreateComponent::ActionRow(start_row),
-        CreateComponent::ActionRow(end_row),
     ];
 
     (content, components)
@@ -405,6 +359,14 @@ fn build_toggle_button(custom_id: &str, label: &str, is_enabled: i32) -> CreateB
     btn
 }
 
+fn build_subpanel_button_row(toggle_id: &str, is_enabled: i32) -> CreateActionRow<'static> {
+    let toggle_btn = build_toggle_button(toggle_id, "", is_enabled);
+    let back_btn = CreateButton::new(BUTTON_ID_BACK)
+        .style(ButtonStyle::Secondary)
+        .label("Back".to_string());
+    CreateActionRow::Buttons(vec![toggle_btn, back_btn].into())
+}
+
 fn build_channel_select(current: Option<i64>) -> CreateSelectMenu<'static> {
     let default_channels = current.map(|id| vec![GenericChannelId::new(id as u64)]);
 
@@ -415,7 +377,7 @@ fn build_channel_select(current: Option<i64>) -> CreateSelectMenu<'static> {
             default_channels: default_channels.map(|v| v.into()),
         },
     )
-    .placeholder("Select subscription channel".to_string())
+    .placeholder("Select leaderboard channel".to_string())
 }
 
 fn build_weekly_day_select(current: Option<i32>) -> CreateSelectMenu<'static> {
@@ -548,3 +510,4 @@ fn week_to_name(week: i32) -> &'static str {
         _ => "Unknown",
     }
 }
+

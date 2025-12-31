@@ -30,8 +30,6 @@ pub async fn insert_server(
         monthly_week: Set(None),
         monthly_weekday: Set(None),
         monthly_hour: Set(None),
-        reload_start: Set(None),
-        reload_end: Set(None),
     };
 
     Server::insert(new_server).exec(txn).await?;
@@ -174,30 +172,3 @@ pub async fn update_server_monthly_hour(server_id: i64, monthly_hour: i32) -> Re
     Ok(())
 }
 
-pub async fn update_server_reload_start(server_id: i64, reload_start: i32) -> Result<(), Error> {
-    let txn = database_access::get_transaction().await?;
-    let server = Server::find_by_id(server_id).one(&txn).await?;
-
-    if let Some(s) = server {
-        let mut s_active: server::ActiveModel = s.into();
-        s_active.reload_start = Set(Some(reload_start));
-        s_active.update(&txn).await?;
-    }
-
-    txn.commit().await?;
-    Ok(())
-}
-
-pub async fn update_server_reload_end(server_id: i64, reload_end: i32) -> Result<(), Error> {
-    let txn = database_access::get_transaction().await?;
-    let server = Server::find_by_id(server_id).one(&txn).await?;
-
-    if let Some(s) = server {
-        let mut s_active: server::ActiveModel = s.into();
-        s_active.reload_end = Set(Some(reload_end));
-        s_active.update(&txn).await?;
-    }
-
-    txn.commit().await?;
-    Ok(())
-}

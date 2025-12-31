@@ -93,7 +93,7 @@ async fn check_reload_task(
         return Ok(());
     }
 
-    if !is_in_reload_window(ctx, server) {
+    if !is_in_reload_window(ctx) {
         return Ok(());
     }
 
@@ -279,15 +279,12 @@ fn days_in_month(year: i32, month: u32) -> i32 {
     }
 }
 
-fn is_in_reload_window(ctx: &SchedulerContext, server: &servers_db::DiscordServer) -> bool {
+fn is_in_reload_window(ctx: &SchedulerContext) -> bool {
     let local_time = Local::now();
     let current_hour = local_time.hour() as u8;
 
-    let config_start = ctx.config.scheduler.auto_reload.start_hour;
-    let config_end = ctx.config.scheduler.auto_reload.end_hour;
-
-    let start_hour = server.reload_start.map(|h| h as u8).unwrap_or(config_start);
-    let end_hour = server.reload_end.map(|h| h as u8).unwrap_or(config_end);
+    let start_hour = ctx.config.scheduler.auto_reload.start_hour;
+    let end_hour = ctx.config.scheduler.auto_reload.end_hour;
 
     let is_in_window = if start_hour <= end_hour {
         current_hour >= start_hour && current_hour < end_hour

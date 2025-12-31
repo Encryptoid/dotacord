@@ -16,8 +16,6 @@ pub struct Model {
     pub monthly_week: Option<i32>,
     pub monthly_weekday: Option<i32>,
     pub monthly_hour: Option<i32>,
-    pub reload_start: Option<i32>,
-    pub reload_end: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

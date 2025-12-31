@@ -32,9 +32,7 @@ CREATE TABLE IF NOT EXISTS servers
     weekly_hour     INTEGER            NULL,
     monthly_week    INTEGER            NULL,
     monthly_weekday INTEGER            NULL,
-    monthly_hour    INTEGER            NULL,
-    reload_start    INTEGER            NULL,
-    reload_end      INTEGER            NULL
+    monthly_hour    INTEGER            NULL
 );
 
 ---

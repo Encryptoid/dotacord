@@ -30,10 +30,10 @@ heartbeat_interval_minutes = 3
 timer_check_mins = 1
 
 [scheduler.auto_reload]
-enabled = false
+enabled = true
 start_hour = 15
 end_hour = 23
-interval_minutes = 60
+interval_minutes = 3
 
 [scheduler.weekly_leaderboard]
 enabled = true

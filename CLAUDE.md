@@ -89,6 +89,8 @@ Key points:
 
 **Always read existing command files before writing new ones.**
 
+**Custom emojis:** Use emojis from `src/leaderboard/emoji.rs`. For buttons, use `discord_helper::parse_custom_emoji()` with `.emoji()` method, not in `.label()`.
+
 ## Configuration
 
 `dotacord.toml` fields:
