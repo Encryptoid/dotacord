@@ -42,6 +42,7 @@ pub async fn roll(
     Ok(())
 }
 
+/// Allow Aghanim to decide your fate.
 #[poise::command(slash_command, prefix_command)]
 pub async fn flip(
     ctx: Context<'_>,
@@ -49,15 +50,7 @@ pub async fn flip(
     choice2: Option<String>,
 ) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
-    flip_inner(&cmd_ctx, choice1, choice2).await?;
-    Ok(())
-}
 
-async fn flip_inner(
-    ctx: &CmdCtx<'_>,
-    choice1: Option<String>,
-    choice2: Option<String>,
-) -> Result<(), Error> {
     info!("Starting coin flip");
     let (heads_choice, tails_choice) = assign_coin_sides(choice1, choice2);
 
@@ -84,11 +77,11 @@ async fn flip_inner(
         Emoji::POGHANIM
     );
     discord_helper::reply_countdown(
-        &ctx,
+        &cmd_ctx,
         &initial_content,
         "### Flipping... ",
         final_content,
-        ctx.app_cfg.flip_countdown_duration_sec,
+        cmd_ctx.app_cfg.flip_countdown_duration_sec,
     )
     .await?;
 
