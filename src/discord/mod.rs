@@ -15,11 +15,11 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         misc_commands::roll(),
         misc_commands::flip(),
         leaderboard_command::leaderboard(),
-        register_command::register(),
+        register_command::register_to_leaderboard(),
     ];
 
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![
-        server_settings_command::server_settings(),
+        server_settings_command::admin_panel(),
         reload_command::refresh_server_matches(),
     ];
 

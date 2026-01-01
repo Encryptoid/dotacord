@@ -9,10 +9,11 @@ use crate::leaderboard::leaderboard_stats::get_leaderboard_messages;
 use crate::util::dates;
 use crate::{Context, Error};
 
+/// Generate a private-reply leaderboard
 #[poise::command(slash_command, prefix_command)]
 pub async fn leaderboard(
     ctx: Context<'_>,
-    #[description = "The duration for the leaderboard"] duration: Duration,
+    duration: Duration,
 ) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
     leaderboard_command(&cmd_ctx, duration).await?;

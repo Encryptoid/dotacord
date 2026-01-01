@@ -7,6 +7,7 @@ use crate::discord::discord_helper::{self, CmdCtx, Ephemeral};
 use crate::util::dates;
 use crate::{Context, Error};
 
+/// Refresh your own matches from the Dota API
 #[poise::command(slash_command, prefix_command)]
 #[tracing::instrument(level = "trace", skip(ctx))]
 pub async fn refresh_matches(ctx: Context<'_>) -> Result<(), Error> {
@@ -15,6 +16,7 @@ pub async fn refresh_matches(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/// [Admin] Refresh all matches for all players on the server
 #[poise::command(slash_command, prefix_command)]
 #[tracing::instrument(level = "trace", skip(ctx))]
 pub async fn refresh_server_matches(ctx: Context<'_>) -> Result<(), Error> {
@@ -219,3 +221,4 @@ async fn add_to_reply(
         .ok();
     Ok(())
 }
+

@@ -16,16 +16,16 @@ use crate::discord::discord_helper::{self, CmdCtx};
 use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
 
-const BUTTON_ID_WEEK: &str = "dotacord_settings_week";
-const BUTTON_ID_MONTH: &str = "dotacord_settings_month";
-const BUTTON_ID_RELOAD: &str = "dotacord_settings_reload";
+const BUTTON_ID_WEEK: &str = "dotacord_admin_week";
+const BUTTON_ID_MONTH: &str = "dotacord_admin_month";
+const BUTTON_ID_RELOAD: &str = "dotacord_admin_reload";
 
-const SELECT_ID_CHANNEL: &str = "dotacord_settings_channel";
-const SELECT_ID_WEEKLY_DAY: &str = "dotacord_settings_weekly_day";
-const SELECT_ID_WEEKLY_HOUR: &str = "dotacord_settings_weekly_hour";
-const SELECT_ID_MONTHLY_WEEK: &str = "dotacord_settings_monthly_week";
-const SELECT_ID_MONTHLY_WEEKDAY: &str = "dotacord_settings_monthly_weekday";
-const SELECT_ID_MONTHLY_HOUR: &str = "dotacord_settings_monthly_hour";
+const SELECT_ID_CHANNEL: &str = "dotacord_admin_channel";
+const SELECT_ID_WEEKLY_DAY: &str = "dotacord_admin_weekly_day";
+const SELECT_ID_WEEKLY_HOUR: &str = "dotacord_admin_weekly_hour";
+const SELECT_ID_MONTHLY_WEEK: &str = "dotacord_admin_monthly_week";
+const SELECT_ID_MONTHLY_WEEKDAY: &str = "dotacord_admin_monthly_weekday";
+const SELECT_ID_MONTHLY_HOUR: &str = "dotacord_admin_monthly_hour";
 
 const BUTTON_ID_CONFIG_WEEKLY: &str = "dotacord_config_weekly";
 const BUTTON_ID_CONFIG_MONTHLY: &str = "dotacord_config_monthly";
@@ -61,17 +61,18 @@ struct ServerState {
     players: Vec<PlayerServerModel>,
 }
 
+/// [Admin] Open the admin panel for the server
 #[poise::command(slash_command, guild_only)]
-pub async fn server_settings(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn admin_panel(ctx: Context<'_>) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
     if !discord_helper::ensure_admin(&cmd_ctx).await? {
         return Ok(());
     }
-    server_settings_panel(&cmd_ctx).await?;
+    generate_admin_panel(&cmd_ctx).await?;
     Ok(())
 }
 
-async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
+async fn generate_admin_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
     let server = servers_db::query_server_by_id(ctx.guild_id)
         .await?
         .ok_or_else(|| Error::from("Server not found in database"))?;
@@ -283,7 +284,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                                             server_id = ctx.guild_id,
                                             old_id = old_player_id,
                                             new_id = new_player_id,
-                                            "Player ID updated via settings panel"
+                                            "Player ID updated via admin panel"
                                         );
                                     } else {
                                         crate::database::players_db::ensure_player_exists(&txn, new_player_id)
@@ -302,7 +303,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                                             player_id = new_player_id,
                                             discord_user_id,
                                             discord_name,
-                                            "Player added via settings panel"
+                                            "Player added via admin panel"
                                         );
                                     }
 
@@ -382,7 +383,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                                 server_id = ctx.guild_id,
                                 player_id,
                                 new_name = if new_name.is_empty() { "cleared" } else { &new_name },
-                                "Player name updated via settings panel"
+                                "Player name updated via admin panel"
                             );
 
                             let (new_content, new_components) = build_panel(current_panel, &state);
@@ -418,7 +419,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                     info!(
                         server_id = ctx.guild_id,
                         discord_user_id,
-                        "Player removed via settings panel"
+                        "Player removed via admin panel"
                     );
                 }
             }
@@ -443,7 +444,7 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
         .edit(
             ctx.discord_ctx,
             poise::CreateReply::default()
-                .content("*Settings panel closed*")
+                .content("*Admin panel closed*")
                 .components(vec![]),
         )
         .await?;
@@ -462,7 +463,7 @@ fn build_panel(panel: Panel, state: &ServerState) -> (String, Vec<CreateComponen
 
 fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
     let content = format!(
-        "# {} **Dotacord Server Settings** {}\n> Select a leaderboard channel and access server settings",
+        "# {} **Dotacord Server Settings** {}\n> Select a leaderboard channel, configure subscriptions, and manage players.",
         Emoji::NERD, Emoji::ORACLE_BURN
     );
 

@@ -5,6 +5,7 @@ use crate::discord::discord_helper::{self, CmdCtx, Ephemeral};
 use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
 
+/// Roll a random number
 #[poise::command(slash_command, prefix_command)]
 pub async fn roll(
     ctx: Context<'_>,
@@ -42,7 +43,7 @@ pub async fn roll(
     Ok(())
 }
 
-/// Allow Aghanim to decide your fate.
+/// Allow Aghanim to decide your fate
 #[poise::command(slash_command, prefix_command)]
 pub async fn flip(
     ctx: Context<'_>,
