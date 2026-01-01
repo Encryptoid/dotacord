@@ -14,17 +14,22 @@ struct FileConfig {
     pub test_guild: Option<u64>,
     pub test_channel: Option<u64>,
     pub online_status: serenity::model::user::OnlineStatus,
-    pub log_level: String,
-    pub log_path: String,
-    pub log_json_path: String,
     pub max_message_length: usize,
     pub max_players_per_server: usize,
-    pub seq_endpoint: Option<String>,
+    pub log: FileLogConfig,
     pub scheduler: SchedulerConfig,
     pub cooldowns: CooldownsConfig,
     pub roll_countdown_duration_sec: u64,
     pub flip_countdown_duration_sec: u64,
     pub countdown_offset_ms: u64,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct FileLogConfig {
+    pub level: String,
+    pub path: String,
+    pub json_path: String,
+    pub seq_endpoint: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -64,20 +69,25 @@ pub struct CooldownsConfig {
 }
 
 #[derive(Clone, Debug)]
+pub struct LogConfig {
+    pub level: String,
+    pub path: PathBuf,
+    pub json_path: PathBuf,
+    pub seq_endpoint: Option<String>,
+}
+
+#[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub struct AppConfig {
     pub database_path: PathBuf,
     pub heroes_path: PathBuf,
     pub discord_api_key: String,
-    pub log_level: String,
-    pub log_path: PathBuf,
-    pub log_json_path: PathBuf,
     pub test_guild: Option<u64>,
     pub test_channel: Option<u64>,
     pub online_status: serenity::model::user::OnlineStatus,
     pub max_message_length: usize,
     pub max_players_per_server: usize,
-    pub seq_endpoint: Option<String>,
+    pub log: LogConfig,
     pub scheduler: SchedulerConfig,
     pub cooldowns: CooldownsConfig,
     pub roll_countdown_duration_sec: u64,
@@ -129,44 +139,50 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
     // })?;
     let api_key = cfg.api_key_var;
 
-    let log_path = log_file_replacements(&cfg.log_path)?;
-    if let Some(parent) = log_path.parent() {
-        if !parent.exists() {
-            return Err(format!("Log file directory does not exist: {}", parent.display()).into());
-        }
-    }
-    if log_path.exists() && !log_path.is_file() {
-        return Err(format!("Log path exists but is not a file: {}", &cfg.log_path).into());
-    }
-
-    let log_json_path = log_file_replacements(&cfg.log_json_path)?;
-    if let Some(parent) = log_json_path.parent() {
-        if !parent.exists() {
-            return Err(format!("Log file directory does not exist: {}", parent.display()).into());
-        }
-    }
-    if log_json_path.exists() && !log_json_path.is_file() {
-        return Err(format!("Log path exists but is not a file: {}", &cfg.log_json_path).into());
-    }
-
     Ok(AppConfig {
         database_path,
         heroes_path,
         discord_api_key: api_key,
-        log_level: cfg.log_level,
-        log_path,
-        log_json_path,
         test_guild: cfg.test_guild,
         test_channel: cfg.test_channel,
         online_status: cfg.online_status,
         max_message_length: cfg.max_message_length,
         max_players_per_server: cfg.max_players_per_server,
-        seq_endpoint: cfg.seq_endpoint,
+        log: build_log_config(cfg.log)?,
         scheduler: cfg.scheduler,
         cooldowns: cfg.cooldowns,
         roll_countdown_duration_sec: cfg.roll_countdown_duration_sec,
         flip_countdown_duration_sec: cfg.flip_countdown_duration_sec,
         countdown_offset_ms: cfg.countdown_offset_ms,
+    })
+}
+
+fn build_log_config(file_log: FileLogConfig) -> Result<LogConfig, Box<dyn std::error::Error + Send + Sync>> {
+    let path = log_file_replacements(&file_log.path)?;
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            return Err(format!("Log file directory does not exist: {}", parent.display()).into());
+        }
+    }
+    if path.exists() && !path.is_file() {
+        return Err(format!("Log path exists but is not a file: {}", &file_log.path).into());
+    }
+
+    let json_path = log_file_replacements(&file_log.json_path)?;
+    if let Some(parent) = json_path.parent() {
+        if !parent.exists() {
+            return Err(format!("Log file directory does not exist: {}", parent.display()).into());
+        }
+    }
+    if json_path.exists() && !json_path.is_file() {
+        return Err(format!("Log path exists but is not a file: {}", &file_log.json_path).into());
+    }
+
+    Ok(LogConfig {
+        level: file_log.level,
+        path,
+        json_path,
+        seq_endpoint: file_log.seq_endpoint,
     })
 }
 

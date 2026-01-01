@@ -17,7 +17,7 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
         .expect("local time offset must be available");
 
     let mut env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log_level));
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log.level));
 
     let directives = [
         "serenity=warn",
@@ -40,7 +40,7 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
     let text_file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(&config.log_path)?;
+        .open(&config.log.path)?;
     let text_file_layer = default_layer()
         .pretty()
         .with_writer(Arc::new(text_file))
@@ -50,7 +50,7 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
     let json_file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(&config.log_json_path)?;
+        .open(&config.log.json_path)?;
     let json_file_layer = default_layer()
         .json()
         .flatten_event(false)
@@ -60,7 +60,7 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
         .with_timer(timer)
         .with_ansi(false);
 
-    if let Some(seq_endpoint) = &config.seq_endpoint {
+    if let Some(seq_endpoint) = &config.log.seq_endpoint {
         Registry::default()
             .with(env_filter)
             .with(stdout_layer)
