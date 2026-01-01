@@ -489,8 +489,10 @@ fn build_player_select(
     let options: Vec<CreateSelectMenuOption> = players
         .iter()
         .map(|p| {
-            let display = p.player_name.as_ref().unwrap_or(&p.discord_name);
-            let label = format!("{} ({})", display, p.player_id);
+            let label = match &p.player_name {
+                Some(nickname) => format!("@{} ({}) - {}", p.discord_name, nickname, p.player_id),
+                None => format!("@{} - {}", p.discord_name, p.player_id),
+            };
             CreateSelectMenuOption::new(label, p.player_id.to_string())
                 .default_selection(selected == Some(p.player_id))
         })
