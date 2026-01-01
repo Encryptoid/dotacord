@@ -19,7 +19,7 @@ pub async fn roll(
         return Ok(());
     }
 
-    let base_content = format!("### Rolling: `1` -> `{max}` {}\n", Emoji::WIZ_GLHF);
+    let base_content = format!("### {} Rolling: `1` -> `{max}` {}\n", Emoji::SMOKED_YA, Emoji::WIZ_GLHF);
 
     let result = rand::rng().random_range(1..=max);
     info!(max = max, result = result, "Roll command executed");
@@ -29,8 +29,7 @@ pub async fn roll(
         Some(m) => m.display_name().to_string(),
         None => ctx.author().name.to_string(),
     };
-    let emoji = Emoji::BOUNTYRUNE;
-    let final_content = format!("## `{user}` rolled: {emoji} `{result}` {emoji}");
+    let final_content = format!("## {} `{user}` rolled: `{result}` {}", Emoji::GOLD, Emoji::BOUNTYRUNE);
     discord_helper::reply_countdown(
         &cmd_ctx,
         &base_content,
