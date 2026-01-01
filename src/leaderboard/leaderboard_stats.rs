@@ -25,6 +25,16 @@ pub async fn get_leaderboard_messages(
         None => "Never".to_string(),
     };
 
+    let section_messages: Vec<String> = sections
+        .iter()
+        .filter_map(|s| s.as_ref())
+        .map(|s| leaderboard_stats::section_to_msg_content(&s))
+        .collect();
+
+    if section_messages.is_empty() {
+        return Ok(vec![]);
+    }
+
     let title = format!(
         "# {} {}ly Leaderboard {} - {} -> {}\n> Last refreshed: {}\n",
         Emoji::TOP1,
@@ -36,12 +46,7 @@ pub async fn get_leaderboard_messages(
     );
 
     let mut messages = vec![title];
-    messages.extend(
-        sections
-            .iter()
-            .filter_map(|s| s.as_ref())
-            .map(|s| leaderboard_stats::section_to_msg_content(&s)),
-    );
+    messages.extend(section_messages);
     Ok(messages)
 }
 
