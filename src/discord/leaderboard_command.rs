@@ -9,7 +9,7 @@ use crate::leaderboard::leaderboard_stats::get_leaderboard_messages;
 use crate::util::dates;
 use crate::{Context, Error};
 
-#[poise::command(slash_command, prefix_command, rename = "dev_leaderboard")]
+#[poise::command(slash_command, prefix_command)]
 pub async fn leaderboard(
     ctx: Context<'_>,
     #[description = "The duration for the leaderboard"] duration: Duration,
@@ -105,3 +105,4 @@ fn batch_contents(contents: Vec<String>, max_length: usize) -> Vec<String> {
     }
     batches
 }
+
