@@ -159,6 +159,7 @@ async fn check_leaderboard_week_task(
         "Publishing weekly leaderboard"
     );
 
+    reload_task::auto_reload(ctx, server).await?;
     leaderboard_task::publish_leaderboard(ctx, server, LeaderboardDuration::Week).await?;
 
     Ok(())
@@ -202,6 +203,7 @@ async fn check_leaderboard_month_task(
         "Publishing monthly leaderboard"
     );
 
+    reload_task::auto_reload(ctx, server).await?;
     leaderboard_task::publish_leaderboard(ctx, server, LeaderboardDuration::Month).await?;
 
     Ok(())

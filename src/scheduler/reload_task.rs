@@ -1,8 +1,8 @@
-use serenity::model::event;
-use tracing::{info, info_span, span};
+use chrono::Utc;
+use tracing::info;
 
 use crate::api::api_wrapper::{self, ReloadPlayerStat};
-use crate::database::{player_servers_db, servers_db};
+use crate::database::{command_events_db, player_servers_db, servers_db};
 use crate::scheduler::SchedulerContext;
 use crate::{seq_span, Error};
 
@@ -19,6 +19,15 @@ pub async fn auto_reload(
 
     info!("About to fetch players");
     reload_players(server).await?;
+
+    command_events_db::insert_event(
+        server.server_id,
+        command_events_db::EventType::AdminRefresh,
+        0,
+        Utc::now().timestamp(),
+    )
+    .await?;
+
     Ok(())
 }
 
