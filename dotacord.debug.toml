@@ -12,7 +12,7 @@ api_key_var = "KEY_DOTACORD"
 # online_status = "online"
 online_status = "invisible"
 
-max_message_length = 1900
+max_message_length = 1700
 
 max_players_per_server = 5
 roll_countdown_duration_sec = 3
