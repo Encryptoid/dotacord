@@ -93,7 +93,7 @@ async fn generate_leaderboard_messages(
     let start_utc = duration.start_date(end_utc);
     let duration_label = duration.to_label();
 
-    leaderboard_stats::get_leaderboard_messages(players, &start_utc, &end_utc, &duration_label)
+    leaderboard_stats::get_leaderboard_messages(server.server_id, players, &start_utc, &end_utc, &duration_label)
         .await
         .map_err(|e| {
             error!(

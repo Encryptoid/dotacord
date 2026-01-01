@@ -45,20 +45,20 @@ pub async fn leaderboard_command(ctx: &CmdCtx<'_>, duration: Duration) -> Result
             format!(
                 "Generating Leaderboard for {} [ {} -> {} ]",
                 duration_label,
-                dates::format_short(start_utc),
-                dates::format_short(end_utc)
+                dates::discord_date(start_utc),
+                dates::discord_date(end_utc)
             ),
         )
         .await?;
 
-    let messages = get_leaderboard_messages(players, &start_utc, &end_utc, &duration_label).await?;
+    let messages = get_leaderboard_messages(ctx.guild_id, players, &start_utc, &end_utc, &duration_label).await?;
 
     if messages.is_empty() {
         let content = format!(
             "No matches found for any players in the duration: {} [ {} -> {} ]",
             duration_label,
-            dates::format_short(start_utc),
-            dates::format_short(end_utc)
+            dates::discord_date(start_utc),
+            dates::discord_date(end_utc)
         );
         reply
             .edit(

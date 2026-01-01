@@ -1,14 +1,16 @@
 use chrono::{DateTime, Utc};
 use tracing::info;
 
-use crate::database::{player_matches_db, player_servers_db};
+use crate::database::{player_matches_db, player_servers_db, schedule_events_db};
 use crate::leaderboard::emoji::Emoji;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::leaderboard::stats_calculator::{self, PlayerStats};
 use crate::leaderboard::{leaderboard_stats, sections};
+use crate::util::dates;
 use crate::Error;
 
 pub async fn get_leaderboard_messages(
+    server_id: i64,
     players: Vec<player_servers_db::PlayerServerModel>,
     start_utc: &DateTime<Utc>,
     end_utc: &DateTime<Utc>,
@@ -17,11 +19,20 @@ pub async fn get_leaderboard_messages(
     let all_stats = leaderboard_stats::get_player_stats(players, &start_utc, &end_utc).await?;
     let sections = sections::get_leaderboard_sections(&duration_label, &all_stats);
 
+    let last_reload = schedule_events_db::query_last_event(server_id, schedule_events_db::EventType::Reload).await?;
+    let last_refreshed = match last_reload {
+        Some(event) => dates::discord_relative_from_timestamp(event.event_time),
+        None => "Never".to_string(),
+    };
+
     let title = format!(
-        "# {} {}ly Leaderboard {}\n",
+        "# {} {}ly Leaderboard {} \n## Duration: {} -> {}\n> Last refreshed: {}\n",
         Emoji::TOP1,
         duration_label,
-        Emoji::AEGIS2015
+        Emoji::AEGIS2015,
+        dates::discord_date(*start_utc),
+        dates::discord_date(*end_utc),
+        last_refreshed
     );
 
     let mut messages = vec![title];
