@@ -60,39 +60,6 @@ pub async fn insert_player_server(
     Ok(())
 }
 
-pub async fn remove_server_player_by_user_id(
-    db: &DatabaseTransaction,
-    server_id: i64,
-    user_id: i64,
-) -> Result<bool, Error> {
-    info!(
-        "Attempting to remove PlayerServer for ServerId: {}, UserId: {}",
-        server_id, user_id
-    );
-
-    let result = PlayerServer::delete_many()
-        .filter(player_server::Column::ServerId.eq(server_id))
-        .filter(player_server::Column::PlayerId.eq(user_id))
-        .exec(db)
-        .await?;
-
-    let removed = result.rows_affected > 0;
-
-    if removed {
-        info!(
-            RowsAffected = result.rows_affected,
-            "Removed PlayerServer for ServerId: {}, UserId: {}", server_id, user_id
-        );
-    } else {
-        info!(
-            "No PlayerServer found for removal. ServerId: {}, UserId: {}",
-            server_id, user_id
-        );
-    }
-
-    Ok(removed)
-}
-
 pub async fn remove_server_player_by_discord_id(
     db: &DatabaseTransaction,
     server_id: i64,
@@ -230,50 +197,3 @@ pub async fn update_player_id(
     }
 }
 
-pub async fn update_discord_user(
-    db: &DatabaseTransaction,
-    server_id: i64,
-    player_id: i64,
-    new_discord_user_id: i64,
-    new_discord_name: String,
-) -> Result<bool, Error> {
-    info!(
-        server_id,
-        player_id,
-        new_discord_user_id,
-        new_discord_name,
-        "Attempting to update discord user"
-    );
-
-    let player_server = PlayerServer::find()
-        .filter(player_server::Column::ServerId.eq(server_id))
-        .filter(player_server::Column::PlayerId.eq(player_id))
-        .one(db)
-        .await?;
-
-    match player_server {
-        Some(ps) => {
-            let mut ps_active: player_server::ActiveModel = ps.into();
-            ps_active.discord_user_id = Set(Some(new_discord_user_id));
-            ps_active.discord_name = Set(new_discord_name.clone());
-            ps_active.update(db).await?;
-
-            info!(
-                server_id,
-                player_id,
-                new_discord_user_id,
-                new_discord_name,
-                "Discord user updated successfully"
-            );
-            Ok(true)
-        }
-        None => {
-            info!(
-                server_id,
-                player_id,
-                "No PlayerServer found for discord user update"
-            );
-            Ok(false)
-        }
-    }
-}

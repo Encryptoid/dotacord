@@ -8,7 +8,7 @@ use tracing::{debug, info, warn};
 
 use crate::database::servers_db;
 use crate::leaderboard::emoji::Emoji;
-use crate::{seq_span, Context, Error};
+use crate::{Context, Error};
 
 const GUILD_LOOKUP_ERROR: &str = "Could not get guild";
 pub struct CmdCtx<'a> {
@@ -32,24 +32,6 @@ pub(crate) async fn get_command_ctx<'a>(ctx: Context<'a>) -> Result<CmdCtx<'a>, 
 
 pub(crate) fn guild_id(ctx: &Context<'_>) -> Result<i64, Error> {
     Ok(ctx.guild().ok_or_else(|| GUILD_LOOKUP_ERROR)?.id.get() as i64)
-}
-
-pub(crate) fn guild_name(ctx: &Context<'_>) -> Result<String, Error> {
-    ctx.guild()
-        .map(|guild| guild.name.to_string())
-        .ok_or_else(|| GUILD_LOOKUP_ERROR.into())
-}
-
-pub(crate) fn channel_id(ctx: &Context<'_>) -> Result<i64, Error> {
-    Ok(ctx.channel_id().get() as i64)
-}
-
-pub(crate) fn format_bool(is_subscribed: i32) -> &'static str {
-    if is_subscribed != 0 {
-        Emoji::GOODJOB
-    } else {
-        Emoji::SLEEPING
-    }
 }
 
 pub(crate) fn parse_custom_emoji(emoji_str: &str) -> Option<ReactionType> {

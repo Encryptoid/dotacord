@@ -35,7 +35,6 @@ struct FileLogConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct SchedulerConfig {
     pub enabled: bool,
-    pub heartbeat_interval_minutes: u64,
     pub timer_check_mins: u64,
     pub auto_reload: AutoReloadConfig,
     pub weekly_leaderboard: WeeklyLeaderboardConfig,

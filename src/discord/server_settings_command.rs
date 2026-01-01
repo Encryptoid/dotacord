@@ -703,30 +703,6 @@ fn build_hour_select(
     .placeholder(placeholder.to_string())
 }
 
-fn day_to_name(day: i32) -> &'static str {
-    match day {
-        1 => "Monday",
-        2 => "Tuesday",
-        3 => "Wednesday",
-        4 => "Thursday",
-        5 => "Friday",
-        6 => "Saturday",
-        7 => "Sunday",
-        _ => "Unknown",
-    }
-}
-
-fn week_to_name(week: i32) -> &'static str {
-    match week {
-        1 => "First",
-        2 => "Second",
-        3 => "Third",
-        4 => "Fourth",
-        5 => "Last",
-        _ => "Unknown",
-    }
-}
-
 fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
     let existing_player = state.selected_discord_user.as_ref().and_then(|(discord_id, _)| {
         state.players.iter().find(|p| p.discord_user_id == Some(*discord_id))

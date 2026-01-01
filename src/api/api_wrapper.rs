@@ -10,11 +10,6 @@ pub struct ReloadPlayerStat {
     pub result: Result<Option<usize>, String>,
 }
 
-pub enum ReloadType {
-    Schedule,
-    Manual,
-}
-
 /// Reloads matches for a given player from the OpenDota API and inserts any new matches into the database.
 #[tracing::instrument(level = "trace")]
 pub async fn reload_player(player: &player_servers_db::PlayerServerModel) -> ReloadPlayerStat {

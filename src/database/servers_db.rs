@@ -12,30 +12,6 @@ pub async fn query_server_by_id(server_id: i64) -> Result<Option<DiscordServer>,
     Ok(server)
 }
 
-pub async fn insert_server(
-    txn: &DatabaseTransaction,
-    server_id: i64,
-    server_name: String,
-    channel_id: Option<i64>,
-) -> Result<(), Error> {
-    let new_server = server::ActiveModel {
-        server_id: Set(server_id),
-        server_name: Set(server_name),
-        channel_id: Set(channel_id),
-        is_sub_week: Set(0),
-        is_sub_month: Set(0),
-        is_sub_reload: Set(0),
-        weekly_day: Set(None),
-        weekly_hour: Set(None),
-        monthly_week: Set(None),
-        monthly_weekday: Set(None),
-        monthly_hour: Set(None),
-    };
-
-    Server::insert(new_server).exec(txn).await?;
-    Ok(())
-}
-
 pub async fn query_all_servers() -> Result<Vec<DiscordServer>, Error> {
     let txn = database_access::get_transaction().await?;
     let servers = Server::find()

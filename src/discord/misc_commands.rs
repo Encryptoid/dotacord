@@ -1,7 +1,7 @@
 use rand::Rng;
 use tracing::info;
 
-use crate::discord::discord_helper::{self, CmdCtx, Ephemeral};
+use crate::discord::discord_helper::{self, Ephemeral};
 use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
 
