@@ -23,7 +23,8 @@ max_message_length = 1900
 
 max_players_per_server = 5
 clear_commands_on_startup = true
-countdown_duration_ms = 5000
+roll_countdown_duration_sec = 3
+flip_countdown_duration_sec = 5
 countdown_offset_ms = 50
 
 [scheduler]

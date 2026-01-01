@@ -3,7 +3,6 @@ use poise::serenity_prelude::Permissions;
 use crate::{Data, Error};
 
 mod discord_helper;
-mod flip_command;
 pub(crate) mod leaderboard_command;
 mod manage_players_command;
 mod misc_commands;
@@ -16,8 +15,8 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
     let mut cmds: Vec<poise::Command<crate::Data, crate::Error>> = vec![
         reload_command::reload_matches(),
         misc_commands::roll(),
+        misc_commands::flip(),
         leaderboard_command::leaderboard(),
-        flip_command::flip(),
         register_command::register(),
     ];
 

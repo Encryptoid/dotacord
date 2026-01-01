@@ -22,7 +22,8 @@ struct FileConfig {
     pub max_players_per_server: usize,
     pub seq_endpoint: Option<String>,
     pub scheduler: SchedulerConfig,
-    pub countdown_duration_ms: u64,
+    pub roll_countdown_duration_sec: u64,
+    pub flip_countdown_duration_sec: u64,
     pub countdown_offset_ms: u64,
 }
 
@@ -75,7 +76,8 @@ pub struct AppConfig {
     pub clear_commands_on_startup: bool,
     pub seq_endpoint: Option<String>,
     pub scheduler: SchedulerConfig,
-    pub countdown_duration_ms: u64,
+    pub roll_countdown_duration_sec: u64,
+    pub flip_countdown_duration_sec: u64,
     pub countdown_offset_ms: u64,
 }
 
@@ -158,7 +160,8 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
         clear_commands_on_startup: cfg.clear_commands_on_startup,
         seq_endpoint: cfg.seq_endpoint,
         scheduler: cfg.scheduler,
-        countdown_duration_ms: cfg.countdown_duration_ms,
+        roll_countdown_duration_sec: cfg.roll_countdown_duration_sec,
+        flip_countdown_duration_sec: cfg.flip_countdown_duration_sec,
         countdown_offset_ms: cfg.countdown_offset_ms,
     })
 }

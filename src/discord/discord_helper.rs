@@ -166,11 +166,11 @@ pub(crate) async fn reply_countdown(
     initial_content: &str,
     countdown_text: &str,
     final_content: String,
+    duration_sec: u64,
 ) -> Result<(), Error> {
-    let config = &ctx.app_cfg;
-    let duration_ms = config.countdown_duration_ms;
-    let offset_ms = config.countdown_offset_ms;
-    let count = (duration_ms / 1000) as i32;
+    let duration_ms = duration_sec * 1000;
+    let offset_ms = ctx.app_cfg.countdown_offset_ms;
+    let count = duration_sec as i32;
     let sleep_ms = (duration_ms / count as u64) + offset_ms;
 
     let reply = ctx
