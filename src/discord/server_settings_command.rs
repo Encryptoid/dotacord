@@ -538,39 +538,16 @@ fn build_panel(panel: Panel, state: &ServerState) -> (String, Vec<CreateComponen
 
 fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
     let content = format!(
-        "# {} **Dotacord Server Settings** {}",
+        "# {} **Dotacord Server Settings** {}\n> Select a leaderboard channel and access server settings",
         Emoji::NERD, Emoji::ORACLE_BURN
     );
 
-    let mut channel_label = CreateButton::new("dotacord_channel_label")
-        .style(ButtonStyle::Primary)
-        .label("Leaderboard Channel".to_string())
-        .disabled(true);
-    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::IMMORTAL) {
-        channel_label = channel_label.emoji(emoji);
-    }
-    let channel_label_row = CreateActionRow::Buttons(vec![channel_label].into());
-
     let config_weekly =
-        build_toggle_button(BUTTON_ID_CONFIG_WEEKLY, "Weekly Leaderboard", state.is_sub_week);
+        build_toggle_button(BUTTON_ID_CONFIG_WEEKLY, "Weekly Leaderboard Settings", state.is_sub_week);
     let config_monthly =
-        build_toggle_button(BUTTON_ID_CONFIG_MONTHLY, "Monthly Leaderboard", state.is_sub_month);
-    let reload_toggle =
-        build_toggle_button(BUTTON_ID_RELOAD, "Auto Reload", state.is_sub_reload);
+        build_toggle_button(BUTTON_ID_CONFIG_MONTHLY, "Monthly Leaderboard Settings", state.is_sub_month);
     let config_row =
-        CreateActionRow::Buttons(vec![config_weekly, config_monthly, reload_toggle].into());
-
-    let channel_select = build_channel_select(state.channel_id);
-    let channel_row = CreateActionRow::SelectMenu(channel_select);
-
-    let mut sub_label = CreateButton::new("dotacord_sub_label")
-        .style(ButtonStyle::Primary)
-        .label("Subscriptions".to_string())
-        .disabled(true);
-    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::GUILD) {
-        sub_label = sub_label.emoji(emoji);
-    }
-    let sub_label_row = CreateActionRow::Buttons(vec![sub_label].into());
+        CreateActionRow::Buttons(vec![config_weekly, config_monthly].into());
 
     let mut players_btn = CreateButton::new(BUTTON_ID_PLAYERS)
         .style(ButtonStyle::Primary)
@@ -581,10 +558,9 @@ fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static
     let players_row = CreateActionRow::Buttons(vec![players_btn].into());
 
     let components = vec![
-        CreateComponent::ActionRow(sub_label_row),
+        CreateComponent::ActionRow(CreateActionRow::SelectMenu(build_channel_select(state.channel_id))),
         CreateComponent::ActionRow(config_row),
-        CreateComponent::ActionRow(channel_label_row),
-        CreateComponent::ActionRow(channel_row),
+        CreateComponent::ActionRow(CreateActionRow::Buttons(vec![build_toggle_button(BUTTON_ID_RELOAD, "Auto Reload Toggle", state.is_sub_reload)].into())),
         CreateComponent::ActionRow(players_row),
     ];
 
@@ -731,7 +707,6 @@ fn build_monthly_week_select(current: Option<i32>) -> CreateSelectMenu<'static> 
         (1, "First"),
         (2, "Second"),
         (3, "Third"),
-        (4, "Fourth"),
         (5, "Last"),
     ];
 
@@ -828,7 +803,7 @@ fn week_to_name(week: i32) -> &'static str {
 }
 
 fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
-    let content = format!("## {} **Manage Players** {}", Emoji::NERD, Emoji::SENTRY_WARD);
+    let content = format!("## {} **Manage Players** {}", Emoji::ILLUSION_RUNE, Emoji::THROWGAME);
 
     let has_selection = state.selected_player_id.is_some();
     let has_players = !state.players.is_empty();
@@ -860,9 +835,9 @@ fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
         !has_selection,
     );
     let set_name_btn =
-        build_player_action_button(BUTTON_ID_SET_NAME, "Set Nickname", Emoji::TP, !has_selection);
+        build_player_action_button(BUTTON_ID_SET_NAME, "Set Nickname", Emoji::JUGG, !has_selection);
     let set_id_btn =
-        build_player_action_button(BUTTON_ID_SET_ID, "Set Player ID", Emoji::MIDAS, !has_selection);
+        build_player_action_button(BUTTON_ID_SET_ID, "Set Player ID", Emoji::SENTRY_WARD, !has_selection);
 
     let mut remove_btn = CreateButton::new(BUTTON_ID_REMOVE)
         .style(ButtonStyle::Danger)

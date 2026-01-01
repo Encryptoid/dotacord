@@ -29,7 +29,9 @@ impl Emoji {
     pub const GRAVE: &'static str = "<a:dota_grave:1456093240464769047>";
     pub const HERALD: &'static str = "<:dota_herald:1424830523083325571>";
     pub const IMMORTAL: &'static str = "<:dota_immortal:1388983640213684295>";
+    pub const ILLUSION_RUNE: &'static str = "<a:dota_illusion_rune:1456245150002057298>";
     pub const IOSTRESS: &'static str = "<a:dota_iostress:1388977512809369681>";
+    pub const JUGG: &'static str = "<a:dota_jugg:1456243609128013947>";
     pub const MEEP_MOP: &'static str = "<a:dota_meep_mop:1456091911550013521>";
     pub const MIDAS: &'static str = "<a:dota_midas:1388977520690466939>";
     pub const NERD: &'static str = "<a:dota_nerd:1456031246571405364>";
