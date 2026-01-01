@@ -21,6 +21,8 @@ pub(crate) async fn get_command_ctx<'a>(ctx: Context<'a>) -> Result<CmdCtx<'a>, 
     let data = ctx.data();
     let guild_id = guild_id(&ctx)?;
     if let Some(err) = validate_command(&ctx, guild_id).await? {
+        ctx.send(CreateReply::new().content(err.clone()).ephemeral(true))
+            .await?;
         return Err(Error::from(err));
     }
     Ok(CmdCtx {
