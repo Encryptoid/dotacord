@@ -23,6 +23,7 @@ impl Emoji {
     pub const GG_RADIANT: &'static str = "<a:dota_gg_radiant:1388977579490541679>";
     pub const GIFF: &'static str = "<a:dota_giff:1388979692023054506>";
     pub const GUILD: &'static str = "<a:dota_guild:1424892985941950617>";
+    pub const GOLD: &'static str = "<a:dota_gold:1456077251186786506>";
     pub const GOODJOB: &'static str = "<a:dota_goodjob:1441827459963289813>";
     pub const HERALD: &'static str = "<:dota_herald:1424830523083325571>";
     pub const IMMORTAL: &'static str = "<:dota_immortal:1388983640213684295>";
@@ -40,6 +41,7 @@ impl Emoji {
     pub const SICK: &'static str = "<a:dota_sick:1388916558553677824>";
     pub const SILENCE: &'static str = "<a:dota_silence:1455976251926908989>";
     pub const SLEEPING: &'static str = "<a:dota_sleeping:1388977587744673975>";
+    pub const SMOKED_YA: &'static str = "<a:dota_smoked_ya:1456077252302344215>";
     pub const SMUGHANIM: &'static str = "<a:dota_smughanim:1439217389769326645>";
     pub const THROWGAME: &'static str = "<a:dota_throwgame:1424176760500785183>";
     pub const TOP1: &'static str = "<:dota_top1:1456039972858761322>";
