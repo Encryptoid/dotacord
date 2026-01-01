@@ -48,15 +48,13 @@ pub struct AutoReloadConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct WeeklyLeaderboardConfig {
     pub enabled: bool,
-    pub day: u8,
-    pub hour: u8,
+    pub minute: u8,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct MonthlyLeaderboardConfig {
     pub enabled: bool,
-    pub day: u8,
-    pub hour: u8,
+    pub minute: u8,
 }
 
 #[derive(Clone, Debug)]

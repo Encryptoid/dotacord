@@ -22,7 +22,7 @@ online_status = "invisible"
 max_message_length = 1900
 
 max_players_per_server = 5
-clear_commands_on_startup = true
+clear_commands_on_startup = false
 roll_countdown_duration_sec = 3
 flip_countdown_duration_sec = 5
 countdown_offset_ms = 50
@@ -40,11 +40,9 @@ interval_minutes = 3
 
 [scheduler.weekly_leaderboard]
 enabled = true
-day = 7
-hour = 21
+minute = 24
 
 [scheduler.monthly_leaderboard]
 enabled = true
-day = 1
-hour = 18
+minute = 24
 

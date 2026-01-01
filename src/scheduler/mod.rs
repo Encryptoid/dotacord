@@ -101,7 +101,7 @@ async fn check_reload_task(
         server.server_id,
         schedule_events_db::EventType::Reload,
     )
-    .await?;
+        .await?;
 
     let interval_secs = ctx.config.scheduler.auto_reload.interval_minutes * 60;
 
@@ -125,7 +125,7 @@ async fn check_reload_task(
             schedule_events_db::EventSource::Schedule,
             now,
         )
-        .await?;
+            .await?;
     }
 
     Ok(())
@@ -142,14 +142,22 @@ async fn check_leaderboard_week_task(
         return Ok(());
     }
 
-    let target_day = server.weekly_day.unwrap_or(config.day as i32) as u32;
-    let target_hour = server.weekly_hour.unwrap_or(config.hour as i32) as u32;
+    let target_day = match server.weekly_day {
+        Some(d) => d as u32,
+        None => return Ok(()),
+    };
+    let target_hour = match server.weekly_hour {
+        Some(h) => h as u32,
+        None => return Ok(()),
+    };
+    let target_minute = config.minute as u32;
 
     let utc_now = Utc::now();
     let weekday = utc_now.weekday().num_days_from_monday() + 1;
     let hour = utc_now.hour();
+    let minute = utc_now.minute();
 
-    if weekday != target_day || hour != target_hour {
+    if weekday != target_day || hour != target_hour || minute != target_minute {
         return Ok(());
     }
 
@@ -157,7 +165,7 @@ async fn check_leaderboard_week_task(
         server.server_id,
         schedule_events_db::EventType::LeaderboardWeek,
     )
-    .await?;
+        .await?;
 
     let one_week_secs = 7 * 24 * 60 * 60;
     let should_publish = match last_event {
@@ -167,7 +175,7 @@ async fn check_leaderboard_week_task(
 
     if should_publish {
         info!(
-            server_id = server.server_id, server_name = ?server.server_name, "Puishing weekly leaderboard"
+            server_id = server.server_id, server_name = ?server.server_name, "Publishing weekly leaderboard"
         );
 
         leaderboard_task::publish_leaderboard(ctx, server, LeaderboardDuration::Week).await?;
@@ -178,7 +186,7 @@ async fn check_leaderboard_week_task(
             schedule_events_db::EventSource::Schedule,
             now,
         )
-        .await?;
+            .await?;
     }
 
     Ok(())
@@ -195,21 +203,25 @@ async fn check_leaderboard_month_task(
         return Ok(());
     }
 
-    let target_hour = server.monthly_hour.unwrap_or(config.hour as i32) as u32;
+    let target_hour = match server.monthly_hour {
+        Some(h) => h as u32,
+        None => return Ok(()),
+    };
+    let (target_week, target_weekday) = match (server.monthly_week, server.monthly_weekday) {
+        (Some(w), Some(wd)) => (w, wd),
+        _ => return Ok(()),
+    };
+    let target_minute = config.minute as u32;
 
     let utc_now = Utc::now();
     let hour = utc_now.hour();
+    let minute = utc_now.minute();
 
-    if hour != target_hour {
+    if hour != target_hour || minute != target_minute {
         return Ok(());
     }
 
-    let is_target_day = match (server.monthly_week, server.monthly_weekday) {
-        (Some(week), Some(weekday)) => is_nth_weekday_of_month(utc_now, week, weekday),
-        _ => utc_now.day() == config.day as u32,
-    };
-
-    if !is_target_day {
+    if !is_nth_weekday_of_month(utc_now, target_week, target_weekday) {
         return Ok(());
     }
 
@@ -217,7 +229,7 @@ async fn check_leaderboard_month_task(
         server.server_id,
         schedule_events_db::EventType::LeaderboardMonth,
     )
-    .await?;
+        .await?;
 
     let one_month_secs = 30 * 24 * 60 * 60;
     let should_publish = match last_event {
@@ -240,7 +252,7 @@ async fn check_leaderboard_month_task(
             schedule_events_db::EventSource::Schedule,
             now,
         )
-        .await?;
+            .await?;
     }
 
     Ok(())
@@ -303,3 +315,4 @@ fn is_in_reload_window(ctx: &SchedulerContext) -> bool {
 
     is_in_window
 }
+
