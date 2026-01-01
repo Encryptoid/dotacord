@@ -80,9 +80,11 @@ async fn main() -> Result<(), Error> {
         ..Default::default()
     });
 
+    let online_status = cfg.online_status;
     let cfg_arc = std::sync::Arc::new(Data { config: cfg });
     let mut client =
         serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
+            .status(online_status)
             .data(cfg_arc)
             .framework(Box::new(framework))
             .await?;

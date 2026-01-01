@@ -157,9 +157,22 @@ async fn check_leaderboard_week_task(
     let hour = utc_now.hour();
     let minute = utc_now.minute();
 
+    info!(
+        server_id = server.server_id,
+        target_day,
+        target_hour,
+        target_minute,
+        weekday,
+        hour,
+        minute,
+        "Checking weekly leaderboard schedule"
+    );
+
     if weekday != target_day || hour != target_hour || minute != target_minute {
         return Ok(());
     }
+
+    info!(server_id = server.server_id, "Schedule matched, checking last event");
 
     let last_event = schedule_events_db::query_last_event(
         server.server_id,
@@ -168,10 +181,12 @@ async fn check_leaderboard_week_task(
         .await?;
 
     let one_week_secs = 7 * 24 * 60 * 60;
-    let should_publish = match last_event {
+    let should_publish = match &last_event {
         None => true,
         Some(event) => (now - event.event_time) >= one_week_secs,
     };
+
+    info!(server_id = server.server_id, ?last_event, should_publish, "Checked last event");
 
     if should_publish {
         info!(
