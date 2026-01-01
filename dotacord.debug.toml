@@ -2,12 +2,6 @@ database_path = "~/dev/rust/dotacord/data/dotacord.db"
 heroes_path = "~/dev/rust/dotacord/data/heroes.json"
 api_key_var = "KEY_DOTACORD"
 
-[log]
-level = "info"
-path = "~/dev/rust/dotacord/data/dotacord.log"
-json_path = "~/dev/rust/dotacord/data/dotacord.json.log"
-seq_endpoint = "http://localhost:5341/api/events/raw"
-
 # Example: register application commands to a single guild for faster testing
 # test_guild = 927307976497315930
 
@@ -47,4 +41,10 @@ minute = 7
 [scheduler.monthly_leaderboard]
 enabled = true
 minute = 7
+
+[log]
+level = "info"
+path = "~/dev/rust/dotacord/data/dotacord.log"
+json_path = "~/dev/rust/dotacord/data/dotacord.json.log"
+seq_endpoint = "http://localhost:5341/api/events/raw"
 

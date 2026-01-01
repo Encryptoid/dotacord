@@ -2,12 +2,6 @@ database_path = "~/dev/rust/dotacord/data/dotacord.db"
 heroes_path = "~/dev/rust/dotacord/data/heroes.json"
 api_key_var = "KEY_DOTACORD"
 
-[log]
-level = "info"
-path = "~/dev/rust/dotacord/data/dotacord.log"
-json_path = "~/dev/rust/dotacord/data/dotacord.json.log"
-seq_endpoint = "http://localhost:5341/api/events/raw"
-
 online_status = "online"
 
 max_message_length = 1900
@@ -39,4 +33,10 @@ minute = 0
 [scheduler.monthly_leaderboard]
 enabled = true
 minute = 0
+
+[log]
+level = "info"
+path = "~/dev/rust/dotacord/data/dotacord.log"
+json_path = "~/dev/rust/dotacord/data/dotacord.json.log"
+seq_endpoint = "http://localhost:5341/api/events/raw"
 
