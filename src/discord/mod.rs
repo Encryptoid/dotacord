@@ -4,7 +4,6 @@ use crate::{Data, Error};
 
 mod discord_helper;
 pub(crate) mod leaderboard_command;
-mod players_command;
 mod misc_commands;
 mod register_command;
 mod register_server;
@@ -23,7 +22,6 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![
         register_server::register_server(),
         server_settings_command::server_settings(),
-        players_command::players(),
     ];
 
     for mut admin_cmd in admin_cmds.into_iter() {
