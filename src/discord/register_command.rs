@@ -11,6 +11,9 @@ pub async fn register_to_leaderboard(
 ) -> Result<(), Error> {
     let cmd_ctx = get_command_ctx(ctx).await?;
 
+    let discord_user = ctx.author();
+    let discord_id = discord_user.id.get() as i64;
+
     let player_servers = player_servers_db::query_server_players(cmd_ctx.guild_id).await?;
 
     if player_servers.len() >= cmd_ctx.app_cfg.max_players_per_server {
@@ -36,8 +39,16 @@ pub async fn register_to_leaderboard(
         return Ok(());
     }
 
-    let discord_user = ctx.author();
-    let discord_id = discord_user.id.get() as i64;
+    if player_servers.iter().any(|ps| ps.discord_user_id == Some(discord_id)) {
+        cmd_ctx
+            .reply(
+                Ephemeral::Private,
+                "You are already registered on this server. If there is a mistake, contact an admin.",
+            )
+            .await?;
+        return Ok(());
+    }
+
     let discord_name = discord_user
         .global_name
         .as_ref()
