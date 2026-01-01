@@ -150,14 +150,14 @@ pub fn build_hero_spam_section(
                     .collect(),
             ))
             .add_column(Text::new(
-                "Count",
+                "Matches",
                 sorted_stats
                     .iter()
                     .map(|s| str!(s.hero_pick_stat.stats.total_matches))
                     .collect(),
             ))
             .add_column(Text::new(
-                "Matches",
+                "Overall",
                 sorted_stats
                     .iter()
                     .map(|s| str!(s.overall_stats.total_matches))
@@ -172,6 +172,21 @@ pub fn build_hero_spam_section(
                             / s.overall_stats.total_matches as f32)
                             * 100.0;
                         format!("{:>3.0}%", percentage)
+                    })
+                    .collect(),
+            ))
+            .add_column(Text::new(
+                "Win%",
+                sorted_stats
+                    .iter()
+                    .map(|s| {
+                        let stats = &s.hero_pick_stat.stats;
+                        if stats.total_matches > 0 {
+                            let win_rate = (stats.wins as f64 / stats.total_matches as f64) * 100.0;
+                            format!("{:>3.0}%", win_rate)
+                        } else {
+                            str!("-")
+                        }
                     })
                     .collect(),
             ))
