@@ -408,7 +408,7 @@ fn build_panel(state: &PanelState) -> (String, Vec<CreateComponent<'static>>) {
 }
 
 fn build_main_panel(state: &PanelState) -> (String, Vec<CreateComponent<'static>>) {
-    let content = format!("# {} **Manage Players** {}", Emoji::GUILD, Emoji::NERD);
+    let content = format!("# {} **Manage Players** {}", Emoji::NERD, Emoji::SENTRY_WARD);
 
     let has_selection = state.selected_player_id.is_some();
     let has_players = !state.players.is_empty();
@@ -622,3 +622,4 @@ fn extract_add_player_modal_values(components: &[Component]) -> (Option<String>,
 
     (player_id, nickname)
 }
+

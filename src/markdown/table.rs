@@ -49,14 +49,12 @@ impl TableBuilder {
     }
 
     fn build_table_content(&self, section: &mut LeaderboardSection, row_count: usize) {
-        // Calculate column widths
         let widths: Vec<usize> = self
             .columns
             .iter()
             .map(|col| col.calculate_width())
             .collect();
 
-        // Build header row (text cells wrapped in inline code; link cells just padded)
         let header_cells: Vec<String> = self
             .columns
             .iter()
@@ -66,7 +64,6 @@ impl TableBuilder {
         let header_row = format!("| {} |", header_cells.join(" | "));
         section.add_line(header_row);
 
-        // Build data rows
         for row_index in 0..row_count {
             let cells: Vec<String> = self
                 .columns
@@ -79,3 +76,4 @@ impl TableBuilder {
         }
     }
 }
+
