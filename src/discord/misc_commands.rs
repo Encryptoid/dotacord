@@ -78,15 +78,15 @@ async fn flip_inner(
     );
 
     let final_content = format!(
-        "{} **{}** has been chosen! {}",
-        Emoji::AEGIS2015,
+        "### {} **{}** has been chosen! {}",
+        Emoji::AWOOGA,
         winner,
-        Emoji::AGHS_SCEPTER
+        Emoji::POGHANIM
     );
     discord_helper::reply_countdown(
         &ctx,
         &initial_content,
-        "Flipping... ",
+        "### Flipping... ",
         final_content,
         ctx.app_cfg.flip_countdown_duration_sec,
     )
@@ -98,10 +98,10 @@ async fn flip_inner(
 fn flip_initial_content(heads_choice: &str, tails_choice: &str) -> String {
     let mut content = format!(
         "# {} Aghanim's Amazing Ambuguity Arbiter {}\n\n",
-        Emoji::AWOOGA,
+        Emoji::SWAGHANIM,
         Emoji::APEXMAGE
     );
-    content.push_str(&format!("## {} vs {}\n\n", heads_choice, tails_choice));
+    content.push_str(&format!("## {} {} vs {} {}\n\n", Emoji::SMUGHANIM, heads_choice, tails_choice, Emoji::FRAGHANIM));
     content
 }
 
