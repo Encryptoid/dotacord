@@ -26,7 +26,7 @@ pub async fn get_leaderboard_messages(
     };
 
     let title = format!(
-        "# {} {}ly Leaderboard {} \n## Duration: {} -> {}\n> Last refreshed: {}\n",
+        "# {} {}ly Leaderboard {} - {} -> {}\n> Last refreshed: {}\n",
         Emoji::TOP1,
         duration_label,
         Emoji::AEGIS2015,

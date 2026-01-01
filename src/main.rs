@@ -72,7 +72,15 @@ async fn main() -> Result<(), Error> {
         on_error: |error| {
             Box::pin(async move {
                 tracing::error!("Poise error: {:?}", error);
-                if let Err(e) = poise::builtins::on_error(error).await {
+                if let poise::FrameworkError::Command { ctx, error, .. } = &error {
+                    let msg = format!("{}", error);
+                    if let Err(e) = ctx
+                        .send(poise::CreateReply::new().content(msg).ephemeral(true))
+                        .await
+                    {
+                        tracing::error!("Error sending ephemeral error: {:?}", e);
+                    }
+                } else if let Err(e) = poise::builtins::on_error(error).await {
                     tracing::error!("Error while handling error: {:?}", e);
                 }
             })
