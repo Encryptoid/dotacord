@@ -6,7 +6,7 @@ We will need a new table in the database.
 CREATE TABLE schedule_events (
     event_id BIGINT PRIMARY KEY,
     server_id BIGINT NOT NULL,
-    event_type TEXT NOT NULL, -- LeaderboardWeek, LeaderboardMonth, or Reload
+    event_type TEXT NOT NULL, -- Reload
     event_source TEXT NOT NULL, -- Manual or Schedule
     event_time TIMESTAMP NOT NULL
 );

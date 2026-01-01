@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS schedule_events
 (
     event_id     INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     server_id    BIGINT             NOT NULL,
-    event_type   TEXT               NOT NULL, -- LeaderboardWeek, LeaderboardMonth, or Reload
+    event_type   TEXT               NOT NULL, -- Reload
     event_source TEXT               NOT NULL, -- Manual or Schedule
     event_time   INTEGER            NOT NULL,
 

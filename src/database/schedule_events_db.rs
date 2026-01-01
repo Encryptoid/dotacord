@@ -8,16 +8,12 @@ pub use schedule_event::Model as ScheduleEventModel;
 
 #[derive(Debug, Clone)]
 pub enum EventType {
-    LeaderboardWeek,
-    LeaderboardMonth,
     Reload,
 }
 
 impl EventType {
     pub fn as_str(&self) -> &'static str {
         match self {
-            EventType::LeaderboardWeek => "LeaderboardWeek",
-            EventType::LeaderboardMonth => "LeaderboardMonth",
             EventType::Reload => "Reload",
         }
     }

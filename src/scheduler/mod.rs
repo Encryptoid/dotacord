@@ -74,11 +74,11 @@ async fn check_server_tasks(
     }
 
     if server.is_sub_week == 1 {
-        check_leaderboard_week_task(ctx, server, now).await?;
+        check_leaderboard_week_task(ctx, server).await?;
     }
 
     if server.is_sub_month == 1 {
-        check_leaderboard_month_task(ctx, server, now).await?;
+        check_leaderboard_month_task(ctx, server).await?;
     }
 
     Ok(())
@@ -134,7 +134,6 @@ async fn check_reload_task(
 async fn check_leaderboard_week_task(
     ctx: &SchedulerContext,
     server: &servers_db::DiscordServer,
-    now: i64,
 ) -> Result<(), Error> {
     let config = &ctx.config.scheduler.weekly_leaderboard;
 
@@ -172,37 +171,13 @@ async fn check_leaderboard_week_task(
         return Ok(());
     }
 
-    info!(server_id = server.server_id, "Schedule matched, checking last event");
+    info!(
+        server_id = server.server_id,
+        server_name = ?server.server_name,
+        "Publishing weekly leaderboard"
+    );
 
-    let last_event = schedule_events_db::query_last_event(
-        server.server_id,
-        schedule_events_db::EventType::LeaderboardWeek,
-    )
-        .await?;
-
-    let one_week_secs = 7 * 24 * 60 * 60;
-    let should_publish = match &last_event {
-        None => true,
-        Some(event) => (now - event.event_time) >= one_week_secs,
-    };
-
-    info!(server_id = server.server_id, ?last_event, should_publish, "Checked last event");
-
-    if should_publish {
-        info!(
-            server_id = server.server_id, server_name = ?server.server_name, "Publishing weekly leaderboard"
-        );
-
-        leaderboard_task::publish_leaderboard(ctx, server, LeaderboardDuration::Week).await?;
-
-        schedule_events_db::insert_event(
-            server.server_id,
-            schedule_events_db::EventType::LeaderboardWeek,
-            schedule_events_db::EventSource::Schedule,
-            now,
-        )
-            .await?;
-    }
+    leaderboard_task::publish_leaderboard(ctx, server, LeaderboardDuration::Week).await?;
 
     Ok(())
 }
@@ -210,7 +185,6 @@ async fn check_leaderboard_week_task(
 async fn check_leaderboard_month_task(
     ctx: &SchedulerContext,
     server: &servers_db::DiscordServer,
-    now: i64,
 ) -> Result<(), Error> {
     let config = &ctx.config.scheduler.monthly_leaderboard;
 
@@ -240,35 +214,13 @@ async fn check_leaderboard_month_task(
         return Ok(());
     }
 
-    let last_event = schedule_events_db::query_last_event(
-        server.server_id,
-        schedule_events_db::EventType::LeaderboardMonth,
-    )
-        .await?;
+    info!(
+        server_id = server.server_id,
+        server_name = ?server.server_name,
+        "Publishing monthly leaderboard"
+    );
 
-    let one_month_secs = 30 * 24 * 60 * 60;
-    let should_publish = match last_event {
-        None => true,
-        Some(event) => (now - event.event_time) >= one_month_secs,
-    };
-
-    if should_publish {
-        info!(
-            server_id = server.server_id,
-            server_name = ?server.server_name,
-            "Publishing monthly leaderboard"
-        );
-
-        leaderboard_task::publish_leaderboard(ctx, server, LeaderboardDuration::Month).await?;
-
-        schedule_events_db::insert_event(
-            server.server_id,
-            schedule_events_db::EventType::LeaderboardMonth,
-            schedule_events_db::EventSource::Schedule,
-            now,
-        )
-            .await?;
-    }
+    leaderboard_task::publish_leaderboard(ctx, server, LeaderboardDuration::Month).await?;
 
     Ok(())
 }
