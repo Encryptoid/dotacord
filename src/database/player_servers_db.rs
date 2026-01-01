@@ -78,6 +78,43 @@ pub async fn remove_server_player_by_user_id(
     Ok(removed)
 }
 
+pub async fn remove_server_player_by_discord_id(
+    db: &DatabaseTransaction,
+    server_id: i64,
+    discord_user_id: i64,
+) -> Result<bool, Error> {
+    info!(
+        server_id,
+        discord_user_id,
+        "Attempting to remove PlayerServer by Discord user ID"
+    );
+
+    let result = PlayerServer::delete_many()
+        .filter(player_server::Column::ServerId.eq(server_id))
+        .filter(player_server::Column::DiscordUserId.eq(discord_user_id))
+        .exec(db)
+        .await?;
+
+    let removed = result.rows_affected > 0;
+
+    if removed {
+        info!(
+            server_id,
+            discord_user_id,
+            rows_affected = result.rows_affected,
+            "Removed PlayerServer by Discord user ID"
+        );
+    } else {
+        info!(
+            server_id,
+            discord_user_id,
+            "No PlayerServer found for removal by Discord user ID"
+        );
+    }
+
+    Ok(removed)
+}
+
 pub async fn rename_server_player_by_user_id(
     db: &DatabaseTransaction,
     server_id: i64,

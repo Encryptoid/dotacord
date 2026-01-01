@@ -35,14 +35,9 @@ const BUTTON_ID_BACK: &str = "dotacord_back";
 const SELECT_ID_PLAYER: &str = "dotacord_player_select";
 const BUTTON_ID_SET_ID: &str = "dotacord_player_set_id";
 const BUTTON_ID_SET_NAME: &str = "dotacord_player_set_name";
-const BUTTON_ID_SET_DISCORD: &str = "dotacord_player_set_discord";
 const BUTTON_ID_REMOVE: &str = "dotacord_player_remove";
-const BUTTON_ID_ADD: &str = "dotacord_player_add";
-const SELECT_ID_DISCORD_USER: &str = "dotacord_player_discord_user";
-const SELECT_ID_ADD_DISCORD_USER: &str = "dotacord_player_add_discord_user";
 const MODAL_ID_SET_ID: &str = "dotacord_modal_set_id";
 const MODAL_ID_SET_NAME: &str = "dotacord_modal_set_name";
-const MODAL_ID_ADD_PLAYER: &str = "dotacord_modal_add_player";
 
 #[derive(Clone, Copy, PartialEq)]
 enum Panel {
@@ -50,8 +45,6 @@ enum Panel {
     Weekly,
     Monthly,
     Players,
-    PlayersDiscord,
-    PlayersAddDiscord,
 }
 
 struct ServerState {
@@ -64,9 +57,8 @@ struct ServerState {
     monthly_week: Option<i32>,
     monthly_weekday: Option<i32>,
     monthly_hour: Option<i32>,
-    selected_player_id: Option<i64>,
+    selected_discord_user: Option<(i64, String)>,
     players: Vec<PlayerServerModel>,
-    pending_add_discord_user: Option<(i64, String)>,
 }
 
 #[poise::command(slash_command, guild_only)]
@@ -96,9 +88,8 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
         monthly_week: server.monthly_week,
         monthly_weekday: server.monthly_weekday,
         monthly_hour: server.monthly_hour,
-        selected_player_id: None,
+        selected_discord_user: None,
         players,
-        pending_add_discord_user: None,
     };
 
     let mut current_panel = Panel::Main;
@@ -114,10 +105,13 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
         )
         .await?;
 
+    let message = reply.message().await?;
+    let message_id = message.id;
+
     while let Some(interaction) =
         ComponentInteractionCollector::new(ctx.discord_ctx.serenity_context())
             .author_id(ctx.discord_ctx.author().id)
-            .channel_id(ctx.discord_ctx.channel_id())
+            .message_id(message_id)
             .timeout(Duration::from_secs(120))
             .await
     {
@@ -149,15 +143,8 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                 current_panel = Panel::Monthly;
             }
             BUTTON_ID_BACK => {
-                match current_panel {
-                    Panel::PlayersDiscord | Panel::PlayersAddDiscord => {
-                        current_panel = Panel::Players;
-                        state.pending_add_discord_user = None;
-                    }
-                    _ => {
-                        current_panel = Panel::Main;
-                    }
-                }
+                current_panel = Panel::Main;
+                state.selected_discord_user = None;
             }
             BUTTON_ID_PLAYERS => {
                 current_panel = Panel::Players;
@@ -228,17 +215,26 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                 }
             }
             SELECT_ID_PLAYER => {
-                if let ComponentInteractionDataKind::StringSelect { values } = &interaction.data.kind {
-                    if let Some(value) = values.first() {
-                        if let Ok(player_id) = value.parse::<i64>() {
-                            state.selected_player_id = Some(player_id);
+                if let ComponentInteractionDataKind::UserSelect { values } = &interaction.data.kind {
+                    if let Some(user_id) = values.first() {
+                        if let Some(user) = interaction.data.resolved.users.get(user_id) {
+                            let discord_user_id = user.id.get() as i64;
+                            let discord_name = user.name.to_string();
+                            state.selected_discord_user = Some((discord_user_id, discord_name));
                         }
                     }
                 }
             }
             BUTTON_ID_SET_ID => {
-                if let Some(player_id) = state.selected_player_id {
-                    let modal = create_set_id_modal(player_id);
+                if let Some((discord_user_id, ref discord_name)) = state.selected_discord_user {
+                    let existing_player = state
+                        .players
+                        .iter()
+                        .find(|p| p.discord_user_id == Some(discord_user_id));
+
+                    let current_player_id = existing_player.map(|p| p.player_id);
+                    let modal = create_set_id_modal(current_player_id);
+
                     interaction
                         .create_response(
                             &ctx.discord_ctx.serenity_context().http,
@@ -254,32 +250,70 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                             .await
                     {
                         let new_id_str = extract_modal_value(&modal_interaction.data.components);
+                        let mut error_message: Option<String> = None;
+
                         if let Some(id_str) = new_id_str {
                             if let Ok(new_player_id) = id_str.parse::<i64>() {
-                                let txn = database_access::get_transaction().await?;
-                                player_servers_db::update_player_id(
-                                    &txn,
-                                    ctx.guild_id,
-                                    player_id,
-                                    new_player_id,
-                                )
-                                .await?;
-                                txn.commit().await?;
+                                let already_exists = state.players.iter().any(|p| {
+                                    p.player_id == new_player_id
+                                        && p.discord_user_id != Some(discord_user_id)
+                                });
 
-                                state.players =
-                                    player_servers_db::query_server_players(ctx.guild_id).await?;
-                                state.selected_player_id = Some(new_player_id);
+                                if already_exists {
+                                    error_message = Some(format!(
+                                        "{} Player ID `{}` is already added to this server.",
+                                        Emoji::SILENCE, new_player_id
+                                    ));
+                                } else {
+                                    let txn = database_access::get_transaction().await?;
 
-                                info!(
-                                    server_id = ctx.guild_id,
-                                    old_id = player_id,
-                                    new_id = new_player_id,
-                                    "Player ID updated via settings panel"
-                                );
+                                    if let Some(old_player_id) = current_player_id {
+                                        player_servers_db::update_player_id(
+                                            &txn,
+                                            ctx.guild_id,
+                                            old_player_id,
+                                            new_player_id,
+                                        )
+                                        .await?;
+                                        info!(
+                                            server_id = ctx.guild_id,
+                                            old_id = old_player_id,
+                                            new_id = new_player_id,
+                                            "Player ID updated via settings panel"
+                                        );
+                                    } else {
+                                        crate::database::players_db::ensure_player_exists(&txn, new_player_id)
+                                            .await?;
+                                        player_servers_db::insert_player_server(
+                                            &txn,
+                                            ctx.guild_id,
+                                            new_player_id,
+                                            None,
+                                            Some(discord_user_id),
+                                            discord_name.clone(),
+                                        )
+                                        .await?;
+                                        info!(
+                                            server_id = ctx.guild_id,
+                                            player_id = new_player_id,
+                                            discord_user_id,
+                                            discord_name,
+                                            "Player added via settings panel"
+                                        );
+                                    }
+
+                                    txn.commit().await?;
+                                    state.players =
+                                        player_servers_db::query_server_players(ctx.guild_id).await?;
+                                }
                             }
                         }
 
-                        let (new_content, new_components) = build_panel(current_panel, &state);
+                        let (panel_content, new_components) = build_panel(current_panel, &state);
+                        let new_content = match error_message {
+                            Some(err) => format!("{}\n\n{}", panel_content, err),
+                            None => panel_content,
+                        };
                         modal_interaction
                             .create_response(
                                 &ctx.discord_ctx.serenity_context().http,
@@ -295,122 +329,21 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                 }
             }
             BUTTON_ID_SET_NAME => {
-                if let Some(player_id) = state.selected_player_id {
-                    let current_name = state
+                if let Some((discord_user_id, _)) = state.selected_discord_user {
+                    let existing_player = state
                         .players
                         .iter()
-                        .find(|p| p.player_id == player_id)
-                        .map(|p| {
-                            p.player_name
-                                .as_ref()
-                                .unwrap_or(&p.discord_name)
-                                .as_str()
-                        })
-                        .unwrap_or("");
+                        .find(|p| p.discord_user_id == Some(discord_user_id));
 
-                    let modal = create_set_name_modal(current_name);
-                    interaction
-                        .create_response(
-                            &ctx.discord_ctx.serenity_context().http,
-                            CreateInteractionResponse::Modal(modal),
-                        )
-                        .await?;
+                    if let Some(player) = existing_player {
+                        let player_id = player.player_id;
+                        let current_name = player
+                            .player_name
+                            .as_ref()
+                            .unwrap_or(&player.discord_name)
+                            .as_str();
 
-                    if let Some(modal_interaction) =
-                        ModalInteractionCollector::new(ctx.discord_ctx.serenity_context())
-                            .author_id(ctx.discord_ctx.author().id)
-                            .timeout(Duration::from_secs(60))
-                            .filter(move |m| m.data.custom_id == MODAL_ID_SET_NAME)
-                            .await
-                    {
-                        let new_name =
-                            extract_modal_value(&modal_interaction.data.components).unwrap_or_default();
-
-                        let txn = database_access::get_transaction().await?;
-                        player_servers_db::rename_server_player_by_user_id(
-                            &txn,
-                            ctx.guild_id,
-                            player_id,
-                            &new_name,
-                        )
-                        .await?;
-                        txn.commit().await?;
-
-                        state.players =
-                            player_servers_db::query_server_players(ctx.guild_id).await?;
-
-                        info!(
-                            server_id = ctx.guild_id,
-                            player_id,
-                            new_name = if new_name.is_empty() { "cleared" } else { &new_name },
-                            "Player name updated via settings panel"
-                        );
-
-                        let (new_content, new_components) = build_panel(current_panel, &state);
-                        modal_interaction
-                            .create_response(
-                                &ctx.discord_ctx.serenity_context().http,
-                                CreateInteractionResponse::UpdateMessage(
-                                    CreateInteractionResponseMessage::default()
-                                        .content(new_content)
-                                        .components(new_components),
-                                ),
-                            )
-                            .await?;
-                    }
-                    continue;
-                }
-            }
-            BUTTON_ID_SET_DISCORD => {
-                current_panel = Panel::PlayersDiscord;
-            }
-            BUTTON_ID_ADD => {
-                current_panel = Panel::PlayersAddDiscord;
-            }
-            SELECT_ID_DISCORD_USER => {
-                if let ComponentInteractionDataKind::UserSelect { values } = &interaction.data.kind {
-                    if let Some(user_id) = values.first() {
-                        if let Some(player_id) = state.selected_player_id {
-                            let user = user_id.to_user(&ctx.discord_ctx.serenity_context().http).await?;
-                            let discord_user_id = user.id.get() as i64;
-                            let discord_name = user.name.to_string();
-
-                            let txn = database_access::get_transaction().await?;
-                            player_servers_db::update_discord_user(
-                                &txn,
-                                ctx.guild_id,
-                                player_id,
-                                discord_user_id,
-                                discord_name.clone(),
-                            )
-                            .await?;
-                            txn.commit().await?;
-
-                            state.players =
-                                player_servers_db::query_server_players(ctx.guild_id).await?;
-                            current_panel = Panel::Players;
-
-                            info!(
-                                server_id = ctx.guild_id,
-                                player_id,
-                                discord_user_id,
-                                discord_name,
-                                "Discord user updated via settings panel"
-                            );
-                        }
-                    }
-                }
-            }
-            SELECT_ID_ADD_DISCORD_USER => {
-                if let ComponentInteractionDataKind::UserSelect { values } = &interaction.data.kind {
-                    if let Some(user_id) = values.first() {
-                        let user = user_id.to_user(&ctx.discord_ctx.serenity_context().http).await?;
-                        let discord_user_id = user.id.get() as i64;
-                        let discord_name = user.name.to_string();
-
-                        state.pending_add_discord_user = Some((discord_user_id, discord_name.clone()));
-
-                        let modal = create_add_player_modal(&discord_name);
+                        let modal = create_set_name_modal(current_name);
                         interaction
                             .create_response(
                                 &ctx.discord_ctx.serenity_context().http,
@@ -422,46 +355,31 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                             ModalInteractionCollector::new(ctx.discord_ctx.serenity_context())
                                 .author_id(ctx.discord_ctx.author().id)
                                 .timeout(Duration::from_secs(60))
-                                .filter(move |m| m.data.custom_id == MODAL_ID_ADD_PLAYER)
+                                .filter(move |m| m.data.custom_id == MODAL_ID_SET_NAME)
                                 .await
                         {
-                            let (player_id_str, nickname) =
-                                extract_add_player_modal_values(&modal_interaction.data.components);
+                            let new_name =
+                                extract_modal_value(&modal_interaction.data.components).unwrap_or_default();
 
-                            if let Some(id_str) = player_id_str {
-                                if let Ok(player_id) = id_str.parse::<i64>() {
-                                    if let Some((discord_id, discord_name)) =
-                                        state.pending_add_discord_user.take()
-                                    {
-                                        let txn = database_access::get_transaction().await?;
-                                        crate::database::players_db::ensure_player_exists(&txn, player_id)
-                                            .await?;
-                                        player_servers_db::insert_player_server(
-                                            &txn,
-                                            ctx.guild_id,
-                                            player_id,
-                                            nickname.clone(),
-                                            Some(discord_id),
-                                            discord_name.clone(),
-                                        )
-                                        .await?;
-                                        txn.commit().await?;
+                            let txn = database_access::get_transaction().await?;
+                            player_servers_db::rename_server_player_by_user_id(
+                                &txn,
+                                ctx.guild_id,
+                                player_id,
+                                &new_name,
+                            )
+                            .await?;
+                            txn.commit().await?;
 
-                                        state.players =
-                                            player_servers_db::query_server_players(ctx.guild_id).await?;
-                                        current_panel = Panel::Players;
+                            state.players =
+                                player_servers_db::query_server_players(ctx.guild_id).await?;
 
-                                        info!(
-                                            server_id = ctx.guild_id,
-                                            player_id,
-                                            discord_id,
-                                            discord_name,
-                                            ?nickname,
-                                            "Player added via settings panel"
-                                        );
-                                    }
-                                }
-                            }
+                            info!(
+                                server_id = ctx.guild_id,
+                                player_id,
+                                new_name = if new_name.is_empty() { "cleared" } else { &new_name },
+                                "Player name updated via settings panel"
+                            );
 
                             let (new_content, new_components) = build_panel(current_panel, &state);
                             modal_interaction
@@ -480,18 +398,22 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                 }
             }
             BUTTON_ID_REMOVE => {
-                if let Some(player_id) = state.selected_player_id {
+                if let Some((discord_user_id, _)) = state.selected_discord_user {
                     let txn = database_access::get_transaction().await?;
-                    player_servers_db::remove_server_player_by_user_id(&txn, ctx.guild_id, player_id)
-                        .await?;
+                    player_servers_db::remove_server_player_by_discord_id(
+                        &txn,
+                        ctx.guild_id,
+                        discord_user_id,
+                    )
+                    .await?;
                     txn.commit().await?;
 
                     state.players = player_servers_db::query_server_players(ctx.guild_id).await?;
-                    state.selected_player_id = None;
+                    state.selected_discord_user = None;
 
                     info!(
                         server_id = ctx.guild_id,
-                        player_id,
+                        discord_user_id,
                         "Player removed via settings panel"
                     );
                 }
@@ -531,8 +453,6 @@ fn build_panel(panel: Panel, state: &ServerState) -> (String, Vec<CreateComponen
         Panel::Weekly => build_weekly_panel(state),
         Panel::Monthly => build_monthly_panel(state),
         Panel::Players => build_players_panel(state),
-        Panel::PlayersDiscord => build_players_discord_select_panel(state),
-        Panel::PlayersAddDiscord => build_players_add_discord_select_panel(),
     }
 }
 
@@ -803,140 +723,78 @@ fn week_to_name(week: i32) -> &'static str {
 }
 
 fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
-    let content = format!("## {} **Manage Players** {}", Emoji::ILLUSION_RUNE, Emoji::THROWGAME);
+    let existing_player = state.selected_discord_user.as_ref().and_then(|(discord_id, _)| {
+        state.players.iter().find(|p| p.discord_user_id == Some(*discord_id))
+    });
 
-    let has_selection = state.selected_player_id.is_some();
-    let has_players = !state.players.is_empty();
+    let content = match (&state.selected_discord_user, existing_player) {
+        (Some((_, discord_name)), Some(player)) => {
+            let nickname_info = player
+                .player_name
+                .as_ref()
+                .map(|n| format!(" ({})", n))
+                .unwrap_or_default();
+            format!(
+                "## {} **Manage Players** {}\n### **@{}**{} - Player ID: `{}`",
+                Emoji::ILLUSION_RUNE, Emoji::THROWGAME, discord_name, nickname_info, player.player_id
+            )
+        }
+        (Some((_, discord_name)), None) => {
+            format!(
+                "## {} **Manage Players** {}\n> {} **@{}** is not added to this server",
+                Emoji::ILLUSION_RUNE, Emoji::THROWGAME, Emoji::SILENCE, discord_name
+            )
+        }
+        _ => {
+            format!("## {} **Manage Players** {}", Emoji::ILLUSION_RUNE, Emoji::THROWGAME)
+        }
+    };
 
-    let mut add_btn = CreateButton::new(BUTTON_ID_ADD)
-        .style(ButtonStyle::Success)
-        .label("Add New Player".to_string());
-    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::NEWBEE) {
-        add_btn = add_btn.emoji(emoji);
-    }
+    let has_selection = state.selected_discord_user.is_some();
+    let is_existing_player = existing_player.is_some();
 
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
+    let user_select = CreateSelectMenu::new(
+        SELECT_ID_PLAYER.to_string(),
+        CreateSelectMenuKind::User { default_users: None },
+    )
+    .placeholder("Select Discord user".to_string());
+    let player_row = CreateActionRow::SelectMenu(user_select);
 
-    let add_back_row = CreateActionRow::Buttons(vec![add_btn, back_btn].into());
-
-    if !has_players {
-        return (content, vec![CreateComponent::ActionRow(add_back_row)]);
-    }
-
-    let player_select = build_player_select(&state.players, state.selected_player_id);
-    let player_row = CreateActionRow::SelectMenu(player_select);
-
-    let set_discord_btn = build_player_action_button(
-        BUTTON_ID_SET_DISCORD,
-        "Set Discord User",
-        Emoji::GUILD,
+    let set_id_btn = build_player_action_button(
+        BUTTON_ID_SET_ID,
+        "Set Player ID",
+        Emoji::SENTRY_WARD,
         !has_selection,
     );
-    let set_name_btn =
-        build_player_action_button(BUTTON_ID_SET_NAME, "Set Nickname", Emoji::JUGG, !has_selection);
-    let set_id_btn =
-        build_player_action_button(BUTTON_ID_SET_ID, "Set Player ID", Emoji::SENTRY_WARD, !has_selection);
+    let set_name_btn = build_player_action_button(
+        BUTTON_ID_SET_NAME,
+        "Set Nickname",
+        Emoji::JUGG,
+        !has_selection || !is_existing_player,
+    );
 
     let mut remove_btn = CreateButton::new(BUTTON_ID_REMOVE)
         .style(ButtonStyle::Danger)
         .label("Remove".to_string())
-        .disabled(!has_selection);
+        .disabled(!has_selection || !is_existing_player);
     if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::GRAVE) {
         remove_btn = remove_btn.emoji(emoji);
     }
 
-    let action_row =
-        CreateActionRow::Buttons(vec![set_discord_btn, set_name_btn, set_id_btn, remove_btn].into());
+    let action_row = CreateActionRow::Buttons(vec![set_id_btn, set_name_btn, remove_btn].into());
+
+    let back_btn = CreateButton::new(BUTTON_ID_BACK)
+        .style(ButtonStyle::Secondary)
+        .label("Back".to_string());
+    let back_row = CreateActionRow::Buttons(vec![back_btn].into());
 
     let components = vec![
         CreateComponent::ActionRow(player_row),
         CreateComponent::ActionRow(action_row),
-        CreateComponent::ActionRow(add_back_row),
-    ];
-
-    (content, components)
-}
-
-fn build_players_discord_select_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
-    let player_name = state
-        .selected_player_id
-        .and_then(|id| state.players.iter().find(|p| p.player_id == id))
-        .map(|p| p.player_name.as_ref().unwrap_or(&p.discord_name).as_str())
-        .unwrap_or("Unknown");
-
-    let content = format!(
-        "## {} Select Discord User for: **{}**",
-        Emoji::GUILD, player_name
-    );
-
-    let user_select = CreateSelectMenu::new(
-        SELECT_ID_DISCORD_USER.to_string(),
-        CreateSelectMenuKind::User { default_users: None },
-    )
-    .placeholder("Select Discord user".to_string());
-    let user_row = CreateActionRow::SelectMenu(user_select);
-
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let back_row = CreateActionRow::Buttons(vec![back_btn].into());
-
-    let components = vec![
-        CreateComponent::ActionRow(user_row),
         CreateComponent::ActionRow(back_row),
     ];
 
     (content, components)
-}
-
-fn build_players_add_discord_select_panel() -> (String, Vec<CreateComponent<'static>>) {
-    let content = format!("## {} Select Discord User for new player", Emoji::GUILD);
-
-    let user_select = CreateSelectMenu::new(
-        SELECT_ID_ADD_DISCORD_USER.to_string(),
-        CreateSelectMenuKind::User { default_users: None },
-    )
-    .placeholder("Select Discord user".to_string());
-    let user_row = CreateActionRow::SelectMenu(user_select);
-
-    let back_btn = CreateButton::new(BUTTON_ID_BACK)
-        .style(ButtonStyle::Secondary)
-        .label("Back".to_string());
-    let back_row = CreateActionRow::Buttons(vec![back_btn].into());
-
-    let components = vec![
-        CreateComponent::ActionRow(user_row),
-        CreateComponent::ActionRow(back_row),
-    ];
-
-    (content, components)
-}
-
-fn build_player_select(
-    players: &[PlayerServerModel],
-    selected: Option<i64>,
-) -> CreateSelectMenu<'static> {
-    let options: Vec<CreateSelectMenuOption> = players
-        .iter()
-        .map(|p| {
-            let label = match &p.player_name {
-                Some(nickname) => format!("@{} ({}) - {}", p.discord_name, nickname, p.player_id),
-                None => format!("@{} - {}", p.discord_name, p.player_id),
-            };
-            CreateSelectMenuOption::new(label, p.player_id.to_string())
-                .default_selection(selected == Some(p.player_id))
-        })
-        .collect();
-
-    CreateSelectMenu::new(
-        SELECT_ID_PLAYER.to_string(),
-        CreateSelectMenuKind::String {
-            options: options.into(),
-        },
-    )
-    .placeholder("Select a player to manage".to_string())
 }
 
 fn build_player_action_button(
@@ -957,15 +815,25 @@ fn build_player_action_button(
     btn
 }
 
-fn create_set_id_modal(current_id: i64) -> CreateModal<'static> {
+fn create_set_id_modal(current_id: Option<i64>) -> CreateModal<'static> {
+    let placeholder = current_id
+        .map(|id| id.to_string())
+        .unwrap_or_else(|| "e.g. 123456789".to_string());
+
+    let title = if current_id.is_some() {
+        "Change Dota Player ID"
+    } else {
+        "Set Dota Player ID"
+    };
+
     let input = CreateInputText::new(InputTextStyle::Short, "new_player_id")
-        .placeholder(current_id.to_string())
+        .placeholder(placeholder)
         .required(true)
         .min_length(1)
         .max_length(15);
 
-    CreateModal::new(MODAL_ID_SET_ID, "Change Dota Player ID").components(vec![
-        CreateModalComponent::Label(CreateLabel::input_text("New Dota Player ID", input)),
+    CreateModal::new(MODAL_ID_SET_ID, title).components(vec![
+        CreateModalComponent::Label(CreateLabel::input_text("Dota Player ID", input)),
     ])
 }
 
@@ -980,24 +848,6 @@ fn create_set_name_modal(current_name: &str) -> CreateModal<'static> {
     ])
 }
 
-fn create_add_player_modal(discord_name: &str) -> CreateModal<'static> {
-    let id_input = CreateInputText::new(InputTextStyle::Short, "player_id")
-        .placeholder("e.g. 123456789".to_string())
-        .required(true)
-        .min_length(1)
-        .max_length(15);
-
-    let name_input = CreateInputText::new(InputTextStyle::Short, "nickname")
-        .placeholder(discord_name.to_string())
-        .required(false)
-        .max_length(32);
-
-    CreateModal::new(MODAL_ID_ADD_PLAYER, "Add Player").components(vec![
-        CreateModalComponent::Label(CreateLabel::input_text("Dota Player ID", id_input)),
-        CreateModalComponent::Label(CreateLabel::input_text("Nickname (optional)", name_input)),
-    ])
-}
-
 fn extract_modal_value(components: &[Component]) -> Option<String> {
     for component in components {
         if let Component::Label(label) = component {
@@ -1009,27 +859,4 @@ fn extract_modal_value(components: &[Component]) -> Option<String> {
     None
 }
 
-fn extract_add_player_modal_values(components: &[Component]) -> (Option<String>, Option<String>) {
-    let mut player_id = None;
-    let mut nickname = None;
-
-    for component in components {
-        if let Component::Label(label) = component {
-            if let LabelComponent::InputText(input) = &label.component {
-                let custom_id = input.custom_id.as_str();
-                let value = input.value.as_ref().map(|v| v.to_string());
-
-                match custom_id {
-                    "player_id" => player_id = value,
-                    "nickname" => {
-                        nickname = value.filter(|s| !s.is_empty());
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
-
-    (player_id, nickname)
-}
 
