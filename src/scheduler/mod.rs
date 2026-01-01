@@ -7,7 +7,7 @@ use std::time::Duration;
 use chrono::{Datelike, Local, Timelike, Utc};
 use poise::serenity_prelude as serenity;
 use tokio::time;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use crate::database::servers_db;
 use crate::leaderboard::duration::Duration as LeaderboardDuration;
@@ -46,7 +46,7 @@ fn start_schedule_task(ctx: Arc<SchedulerContext>) {
 }
 
 async fn check_all_tasks(ctx: &SchedulerContext) -> Result<(), Error> {
-    info!("Checking scheduled tasks for all subscribed servers");
+    debug!("Checking scheduled tasks for all subscribed servers");
 
     let servers = servers_db::query_all_servers().await?;
     for server in servers {
@@ -138,7 +138,7 @@ async fn check_leaderboard_week_task(
     let hour = utc_now.hour();
     let minute = utc_now.minute();
 
-    info!(
+    debug!(
         server_id = server.server_id,
         target_day,
         target_hour,

@@ -4,11 +4,11 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 use tracing::field::{Field, Visit};
 use tracing::{Event, Subscriber};
-use tracing_subscriber::filter::Directive;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, Registry};
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::Registry;
 
 use crate::config::AppConfig;
 
@@ -16,22 +16,7 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
     let timer = tracing_subscriber::fmt::time::OffsetTime::local_rfc_3339()
         .expect("local time offset must be available");
 
-    let mut env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log.level));
-
-    let directives = [
-        "serenity=warn",
-        "tokio_tungstenite=warn",
-        "h2=warn",
-        "dotacord=trace",
-        "dotacord::data::player_matches_db=info",
-    ];
-
-    for directive in directives {
-        if let Ok(parsed) = directive.parse::<Directive>() {
-            env_filter = env_filter.add_directive(parsed);
-        }
-    }
+    let filter = EnvFilter::new(&config.log.level);
 
     let stdout_layer = default_layer()
         .with_writer(std::io::stdout)
@@ -62,7 +47,7 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
 
     if let Some(seq_endpoint) = &config.log.seq_endpoint {
         Registry::default()
-            .with(env_filter)
+            .with(filter)
             .with(stdout_layer)
             .with(text_file_layer)
             .with(json_file_layer)
@@ -72,7 +57,7 @@ pub fn init(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send +
             .try_init()?;
     } else {
         Registry::default()
-            .with(env_filter)
+            .with(filter)
             .with(stdout_layer)
             .with(text_file_layer)
             .with(json_file_layer)
@@ -231,3 +216,4 @@ where
         span.extensions_mut().insert(SeqSpanFields(visitor.fields));
     }
 }
+
