@@ -67,7 +67,7 @@ async fn refresh_user_matches_command(ctx: &CmdCtx<'_>) -> Result<(), Error> {
         .unwrap_or(&player.discord_name);
     let reply = ctx
         .reply(
-            Ephemeral::Public,
+            Ephemeral::Private,
             format!("Refreshing matches for {}...", display_name),
         )
         .await?;

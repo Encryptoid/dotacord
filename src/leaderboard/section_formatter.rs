@@ -121,8 +121,8 @@ pub fn build_hero_spam_section(
     let hero_name =
         hero_cache::get_hero_by_id(winner.hero_pick_stat.hero_id).unwrap_or("Unknown Hero");
     let title = format!(
-        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - `{:.0}% {}` - ({})",
-        winner.player_name, pick_rate, "Hero Pick Rate", hero_name
+        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {} - `{:.0}% {}`",
+        winner.player_name, hero_name, pick_rate, "Hero Pick Rate"
     );
 
     let mut builder = TableBuilder::new(title);
@@ -218,8 +218,8 @@ pub fn build_single_match_stat_section(
     let winner_stat = selector(winner);
     let hero_name = hero_cache::get_hero_by_id(winner_stat.hero_id).unwrap_or("Unknown Hero");
     let title = format!(
-        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - `{} {}` - ({})",
-        winner.player_name, winner_stat.value, stat_name, hero_name
+        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {} - `{} {}`",
+        winner.player_name, hero_name, winner_stat.value, stat_name
     );
 
     let player_column: Vec<String> = sorted_stats.iter().map(|s| str!(s.player_name)).collect();

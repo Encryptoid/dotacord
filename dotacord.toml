@@ -43,9 +43,9 @@ interval_minutes = 3
 
 [scheduler.weekly_leaderboard]
 enabled = true
-minute = 5
+minute = 31
 
 [scheduler.monthly_leaderboard]
 enabled = true
-minute = 5
+minute = 31
 
