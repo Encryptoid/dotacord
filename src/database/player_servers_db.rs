@@ -98,7 +98,11 @@ pub async fn rename_server_player_by_user_id(
     match player_server {
         Some(ps) => {
             let mut ps_active: player_server::ActiveModel = ps.into();
-            ps_active.player_name = Set(Some(new_name.to_string()));
+            ps_active.player_name = Set(if new_name.is_empty() {
+                None
+            } else {
+                Some(new_name.to_string())
+            });
             ps_active.update(db).await?;
 
             info!(

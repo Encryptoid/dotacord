@@ -180,28 +180,27 @@ async fn manage_players_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                             .filter(move |m| m.data.custom_id == MODAL_ID_SET_NAME)
                             .await
                     {
-                        let new_name = extract_modal_value(&modal_interaction.data.components);
-                        if let Some(name) = new_name {
-                            let txn = database_access::get_transaction().await?;
-                            player_servers_db::rename_server_player_by_user_id(
-                                &txn,
-                                ctx.guild_id,
-                                player_id,
-                                &name,
-                            )
-                            .await?;
-                            txn.commit().await?;
+                        let new_name = extract_modal_value(&modal_interaction.data.components).unwrap_or_default();
 
-                            state.players =
-                                player_servers_db::query_server_players(ctx.guild_id).await?;
+                        let txn = database_access::get_transaction().await?;
+                        player_servers_db::rename_server_player_by_user_id(
+                            &txn,
+                            ctx.guild_id,
+                            player_id,
+                            &new_name,
+                        )
+                        .await?;
+                        txn.commit().await?;
 
-                            info!(
-                                server_id = ctx.guild_id,
-                                player_id,
-                                new_name = name,
-                                "Player name updated via manage panel"
-                            );
-                        }
+                        state.players =
+                            player_servers_db::query_server_players(ctx.guild_id).await?;
+
+                        info!(
+                            server_id = ctx.guild_id,
+                            player_id,
+                            new_name = if new_name.is_empty() { "cleared" } else { &new_name },
+                            "Player name updated via manage panel"
+                        );
 
                         let (new_content, new_components) = build_panel(&state);
                         modal_interaction
@@ -428,10 +427,11 @@ fn build_main_panel(state: &PanelState) -> (String, Vec<CreateComponent<'static>
     let player_select = build_player_select(&state.players, state.selected_player_id);
     let player_row = CreateActionRow::SelectMenu(player_select);
 
-    let set_id_btn = build_action_button(BUTTON_ID_SET_ID, "Set ID", Emoji::MIDAS, !has_selection);
-    let set_name_btn = build_action_button(BUTTON_ID_SET_NAME, "Set Name", Emoji::TP, !has_selection);
     let set_discord_btn =
-        build_action_button(BUTTON_ID_SET_DISCORD, "Set Discord", Emoji::GUILD, !has_selection);
+        build_action_button(BUTTON_ID_SET_DISCORD, "Set Discord User", Emoji::GUILD, !has_selection);
+    let set_name_btn = build_action_button(BUTTON_ID_SET_NAME, "Set Nickname", Emoji::TP, !has_selection);
+    let set_id_btn = build_action_button(BUTTON_ID_SET_ID, "Set Player ID", Emoji::MIDAS, !has_selection);
+
     let mut remove_btn = CreateButton::new(BUTTON_ID_REMOVE)
         .style(ButtonStyle::Danger)
         .label("Remove")
@@ -439,8 +439,8 @@ fn build_main_panel(state: &PanelState) -> (String, Vec<CreateComponent<'static>
     if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::SILENCE) {
         remove_btn = remove_btn.emoji(emoji);
     }
-    let action_row = CreateActionRow::Buttons(vec![set_id_btn, set_name_btn, set_discord_btn, remove_btn].into());
 
+    let action_row = CreateActionRow::Buttons(vec![set_discord_btn, set_name_btn, set_id_btn, remove_btn].into());
     let components = vec![
         CreateComponent::ActionRow(player_row),
         CreateComponent::ActionRow(action_row),
@@ -540,12 +540,11 @@ fn create_set_id_modal(current_id: i64) -> CreateModal<'static> {
 fn create_set_name_modal(current_name: &str) -> CreateModal<'static> {
     let input = CreateInputText::new(InputTextStyle::Short, "new_name")
         .placeholder(current_name.to_string())
-        .required(true)
-        .min_length(1)
+        .required(false)
         .max_length(32);
 
     CreateModal::new(MODAL_ID_SET_NAME, "Change Player Nickname").components(vec![
-        CreateModalComponent::Label(CreateLabel::input_text("New Nickname", input)),
+        CreateModalComponent::Label(CreateLabel::input_text("New Nickname (empty to clear)", input)),
     ])
 }
 
