@@ -71,9 +71,10 @@ async fn get_player_stats(
 }
 
 fn section_to_msg_content(section: &LeaderboardSection) -> String {
-    let mut content = format!("## {}\n", section.title);
+    let mut content = format!("### {}\n", section.title);
     for line in &section.lines {
         content.push_str(&format!("{}\n", line));
     }
     content
 }
+

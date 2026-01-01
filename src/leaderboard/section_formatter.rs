@@ -33,7 +33,7 @@ pub fn build_winrate_section(
     let (winner_wins, winner_total) = selector(winner);
     let win_rate = (winner_wins as f64 / winner_total as f64) * 100.0;
     let title = format!(
-        "[{duration_label}] - {left_emoji} {title_text} {right_emoji} - __*{}*__ - {:.0}% {}",
+        "[{duration_label}] - {left_emoji} {title_text} {right_emoji} - __*{}*__ - `{:.0}% {}`",
         winner.player_name, win_rate, win_rate_label
     );
 
@@ -121,7 +121,7 @@ pub fn build_hero_spam_section(
     let hero_name =
         hero_cache::get_hero_by_id(winner.hero_pick_stat.hero_id).unwrap_or("Unknown Hero");
     let title = format!(
-        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {:.0}% {} ({})",
+        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - `{:.0}% {}` - ({})",
         winner.player_name, pick_rate, "Hero Pick Rate", hero_name
     );
 
@@ -203,7 +203,7 @@ pub fn build_single_match_stat_section(
     let winner_stat = selector(winner);
     let hero_name = hero_cache::get_hero_by_id(winner_stat.hero_id).unwrap_or("Unknown Hero");
     let title = format!(
-        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {} {} ({})",
+        "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - `{} {}` - ({})",
         winner.player_name, winner_stat.value, stat_name, hero_name
     );
 
@@ -303,7 +303,7 @@ pub fn build_longest_match_section(
     let player_name = winner.player_name.as_str();
 
     let title = format!(
-        "[{}] - {} {} {} - __*{}*__ - {} - {}",
+        "[{}] - {} {} {} - __*{}*__ - {} - `{}`",
         duration_label, left_emoji, label, right_emoji, player_name, stat_name, duration,
     );
 
@@ -367,3 +367,4 @@ pub fn build_longest_match_section(
     let section = builder.build();
     Some(section)
 }
+
