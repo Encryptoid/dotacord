@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use tracing::info;
 
-use crate::database::{player_matches_db, player_servers_db, schedule_events_db};
+use crate::database::{command_events_db, player_matches_db, player_servers_db};
 use crate::leaderboard::emoji::Emoji;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::leaderboard::stats_calculator::{self, PlayerStats};
@@ -19,7 +19,7 @@ pub async fn get_leaderboard_messages(
     let all_stats = leaderboard_stats::get_player_stats(players, &start_utc, &end_utc).await?;
     let sections = sections::get_leaderboard_sections(&duration_label, &all_stats);
 
-    let last_reload = schedule_events_db::query_last_event(server_id, schedule_events_db::EventType::Reload).await?;
+    let last_reload = command_events_db::query_last_event(server_id, command_events_db::EventType::AdminRefresh, None).await?;
     let last_refreshed = match last_reload {
         Some(event) => dates::discord_relative_from_timestamp(event.event_time),
         None => "Never".to_string(),

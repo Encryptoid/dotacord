@@ -11,7 +11,7 @@ mod server_settings_command;
 
 pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
     let mut cmds: Vec<poise::Command<crate::Data, crate::Error>> = vec![
-        reload_command::reload_matches(),
+        reload_command::refresh_matches(),
         misc_commands::roll(),
         misc_commands::flip(),
         leaderboard_command::leaderboard(),
@@ -20,6 +20,7 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
 
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![
         server_settings_command::server_settings(),
+        reload_command::refresh_server_matches(),
     ];
 
     for mut admin_cmd in admin_cmds.into_iter() {

@@ -25,6 +25,21 @@ pub async fn query_server_players(server_id: i64) -> Result<Vec<PlayerServerMode
     Ok(rows)
 }
 
+pub async fn query_player_by_discord_user(
+    server_id: i64,
+    discord_user_id: i64,
+) -> Result<Option<PlayerServerModel>, Error> {
+    let txn = database_access::get_transaction().await?;
+
+    let player = PlayerServer::find()
+        .filter(player_server::Column::ServerId.eq(server_id))
+        .filter(player_server::Column::DiscordUserId.eq(discord_user_id))
+        .one(&txn)
+        .await?;
+
+    Ok(player)
+}
+
 pub async fn insert_player_server(
     db: &DatabaseTransaction,
     server_id: i64,

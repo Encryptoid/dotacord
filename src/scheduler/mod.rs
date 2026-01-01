@@ -9,7 +9,7 @@ use poise::serenity_prelude as serenity;
 use tokio::time;
 use tracing::{error, info};
 
-use crate::database::{schedule_events_db, servers_db};
+use crate::database::servers_db;
 use crate::leaderboard::duration::Duration as LeaderboardDuration;
 use crate::{config::AppConfig, Error};
 
@@ -67,10 +67,8 @@ async fn check_server_tasks(
     ctx: &SchedulerContext,
     server: &servers_db::DiscordServer,
 ) -> Result<(), Error> {
-    let now = Utc::now().timestamp();
-
     if server.is_sub_reload == 1 {
-        check_reload_task(ctx, server, now).await?;
+        check_reload_task(ctx, server).await?;
     }
 
     if server.is_sub_week == 1 {
@@ -87,7 +85,6 @@ async fn check_server_tasks(
 async fn check_reload_task(
     ctx: &SchedulerContext,
     server: &servers_db::DiscordServer,
-    now: i64,
 ) -> Result<(), Error> {
     if !ctx.config.scheduler.auto_reload.enabled {
         return Ok(());
@@ -97,36 +94,21 @@ async fn check_reload_task(
         return Ok(());
     }
 
-    let last_event = schedule_events_db::query_last_event(
-        server.server_id,
-        schedule_events_db::EventType::Reload,
-    )
-        .await?;
+    let utc_now = Utc::now();
+    let current_minute = utc_now.minute() as u64;
+    let interval = ctx.config.scheduler.auto_reload.interval_minutes;
 
-    let interval_secs = ctx.config.scheduler.auto_reload.interval_minutes * 60;
-
-    let should_reload = match last_event {
-        None => true,
-        Some(event) => (now - event.event_time) >= interval_secs as i64,
-    };
-
-    if should_reload {
-        info!(
-            server_id = server.server_id,
-            server_name = ?server.server_name,
-            "Performing scheduled reload"
-        );
-
-        reload_task::auto_reload(ctx, server).await?;
-
-        schedule_events_db::insert_event(
-            server.server_id,
-            schedule_events_db::EventType::Reload,
-            schedule_events_db::EventSource::Schedule,
-            now,
-        )
-            .await?;
+    if current_minute % interval != 0 {
+        return Ok(());
     }
+
+    info!(
+        server_id = server.server_id,
+        server_name = ?server.server_name,
+        "Performing scheduled reload"
+    );
+
+    reload_task::auto_reload(ctx, server).await?;
 
     Ok(())
 }

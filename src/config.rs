@@ -21,6 +21,7 @@ struct FileConfig {
     pub max_players_per_server: usize,
     pub seq_endpoint: Option<String>,
     pub scheduler: SchedulerConfig,
+    pub cooldowns: CooldownsConfig,
     pub roll_countdown_duration_sec: u64,
     pub flip_countdown_duration_sec: u64,
     pub countdown_offset_ms: u64,
@@ -56,6 +57,12 @@ pub struct MonthlyLeaderboardConfig {
     pub minute: u8,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct CooldownsConfig {
+    pub user_refresh_min: u64,
+    pub admin_refresh_min: u64,
+}
+
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub struct AppConfig {
@@ -72,6 +79,7 @@ pub struct AppConfig {
     pub max_players_per_server: usize,
     pub seq_endpoint: Option<String>,
     pub scheduler: SchedulerConfig,
+    pub cooldowns: CooldownsConfig,
     pub roll_countdown_duration_sec: u64,
     pub flip_countdown_duration_sec: u64,
     pub countdown_offset_ms: u64,
@@ -155,6 +163,7 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
         max_players_per_server: cfg.max_players_per_server,
         seq_endpoint: cfg.seq_endpoint,
         scheduler: cfg.scheduler,
+        cooldowns: cfg.cooldowns,
         roll_countdown_duration_sec: cfg.roll_countdown_duration_sec,
         flip_countdown_duration_sec: cfg.flip_countdown_duration_sec,
         countdown_offset_ms: cfg.countdown_offset_ms,
