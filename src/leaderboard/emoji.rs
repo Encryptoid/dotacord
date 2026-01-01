@@ -26,11 +26,14 @@ impl Emoji {
     pub const GUILD: &'static str = "<a:dota_guild:1424892985941950617>";
     pub const GOLD: &'static str = "<a:dota_gold:1456077251186786506>";
     pub const GOODJOB: &'static str = "<a:dota_goodjob:1441827459963289813>";
+    pub const GRAVE: &'static str = "<a:dota_grave:1456093240464769047>";
     pub const HERALD: &'static str = "<:dota_herald:1424830523083325571>";
     pub const IMMORTAL: &'static str = "<:dota_immortal:1388983640213684295>";
     pub const IOSTRESS: &'static str = "<a:dota_iostress:1388977512809369681>";
+    pub const MEEP_MOP: &'static str = "<a:dota_meep_mop:1456091911550013521>";
     pub const MIDAS: &'static str = "<a:dota_midas:1388977520690466939>";
     pub const NERD: &'static str = "<a:dota_nerd:1456031246571405364>";
+    pub const NEWBEE: &'static str = "<:dota_newbee:1456092515051507792>";
     pub const OBSERVER_WARD: &'static str = "<a:dota_observer_ward:1388977541036904638>";
     pub const ONLOOKER: &'static str = "<a:dota_onlooker:1424891475577147424>";
     pub const OPEN_DOTA: &'static str = "<:open_dota:1424835968682426492>";

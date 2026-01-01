@@ -117,18 +117,35 @@ async fn send_leaderboard_messages(
     let batches = batch_contents(messages, ctx.config.max_message_length);
 
     for batch in batches {
-        let message = serenity::CreateMessage::default()
-            .content(batch)
+        let placeholder = serenity::CreateMessage::default()
+            .content("Generating Leaderboard...")
             .flags(serenity::MessageFlags::SUPPRESS_EMBEDS);
 
-        if let Err(e) = channel.id().send_message(&ctx.http, message).await {
-            error!(
-                server_id = server.server_id,
-                server_name = ?server.server_name,
-                channel_id = channel_id_value,
-                error = ?e,
-                "Failed to send leaderboard message"
-            );
+        match channel.id().send_message(&ctx.http, placeholder).await {
+            Ok(msg) => {
+                let edit = serenity::EditMessage::new()
+                    .content(batch)
+                    .flags(serenity::MessageFlags::SUPPRESS_EMBEDS);
+
+                if let Err(e) = channel.id().edit_message(&ctx.http, msg.id, edit).await {
+                    error!(
+                        server_id = server.server_id,
+                        server_name = ?server.server_name,
+                        channel_id = channel_id_value,
+                        error = ?e,
+                        "Failed to edit leaderboard message"
+                    );
+                }
+            }
+            Err(e) => {
+                error!(
+                    server_id = server.server_id,
+                    server_name = ?server.server_name,
+                    channel_id = channel_id_value,
+                    error = ?e,
+                    "Failed to send leaderboard placeholder"
+                );
+            }
         }
     }
 

@@ -575,7 +575,7 @@ fn build_main_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static
     let mut players_btn = CreateButton::new(BUTTON_ID_PLAYERS)
         .style(ButtonStyle::Primary)
         .label("Manage Players".to_string());
-    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::SENTRY_WARD) {
+    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::MEEP_MOP) {
         players_btn = players_btn.emoji(emoji);
     }
     let players_row = CreateActionRow::Buttons(vec![players_btn].into());
@@ -836,7 +836,7 @@ fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
     let mut add_btn = CreateButton::new(BUTTON_ID_ADD)
         .style(ButtonStyle::Success)
         .label("Add New Player".to_string());
-    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::GOODJOB) {
+    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::NEWBEE) {
         add_btn = add_btn.emoji(emoji);
     }
 
@@ -868,7 +868,7 @@ fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
         .style(ButtonStyle::Danger)
         .label("Remove".to_string())
         .disabled(!has_selection);
-    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::SILENCE) {
+    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::GRAVE) {
         remove_btn = remove_btn.emoji(emoji);
     }
 
