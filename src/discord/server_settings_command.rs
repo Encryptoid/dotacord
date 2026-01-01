@@ -219,7 +219,11 @@ async fn server_settings_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                     if let Some(user_id) = values.first() {
                         if let Some(user) = interaction.data.resolved.users.get(user_id) {
                             let discord_user_id = user.id.get() as i64;
-                            let discord_name = user.name.to_string();
+                            let discord_name = user
+                                .global_name
+                                .as_ref()
+                                .map(|n| n.to_string())
+                                .unwrap_or_else(|| user.name.to_string());
                             state.selected_discord_user = Some((discord_user_id, discord_name));
                         }
                     }

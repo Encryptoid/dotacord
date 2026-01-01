@@ -37,7 +37,11 @@ pub async fn register(
 
     let discord_user = ctx.author();
     let discord_id = discord_user.id.get() as i64;
-    let discord_name = discord_user.name.to_string();
+    let discord_name = discord_user
+        .global_name
+        .as_ref()
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| discord_user.name.to_string());
 
     players_db::insert_player_and_server(
         cmd_ctx.guild_id,
