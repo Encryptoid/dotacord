@@ -48,7 +48,7 @@ Forces a reload of API matches for all players on the current server.
 
 Opens an interactive settings panel to configure subscription channel, enable/disable weekly/monthly leaderboards and auto-reload, and set custom schedules per server.
 
-#### `/manage_players`
+#### `/players`
 
 Opens an interactive panel to manage players on the current server. Allows adding, removing, renaming players, and changing their linked Dota ID or Discord user.
 

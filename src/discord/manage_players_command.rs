@@ -43,7 +43,7 @@ struct PanelState {
 }
 
 #[poise::command(slash_command, guild_only)]
-pub async fn manage_players(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn players(ctx: Context<'_>) -> Result<(), Error> {
     let cmd_ctx = discord_helper::get_command_ctx(ctx).await?;
     if !discord_helper::ensure_admin(&cmd_ctx).await? {
         return Ok(());
