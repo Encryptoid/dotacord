@@ -6,7 +6,6 @@ mod discord_helper;
 pub(crate) mod leaderboard_command;
 mod misc_commands;
 mod register_command;
-mod register_server;
 mod reload_command;
 mod server_settings_command;
 
@@ -20,7 +19,6 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
     ];
 
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![
-        register_server::register_server(),
         server_settings_command::server_settings(),
     ];
 
