@@ -8,8 +8,18 @@ mod markdown;
 mod scheduler;
 mod util;
 use ::serenity::all::Token;
+use clap::Parser;
 use poise::serenity_prelude::{self as serenity};
 use tracing::info;
+
+#[derive(Parser)]
+#[command(name = "dotacord")]
+struct Args {
+    #[arg(short = 'c', long)]
+    clear_commands: bool,
+    #[arg(short, long)]
+    register: bool,
+}
 
 use crate::database::{database_access, hero_cache};
 
@@ -27,6 +37,7 @@ async fn main() -> Result<(), Error> {
         std::env::set_var("RUST_BACKTRACE", "1");
     }
 
+    let args = Args::parse();
     let cfg = config::load_config().expect("Could not load config");
 
     logging::init(&cfg)?;
@@ -35,10 +46,6 @@ async fn main() -> Result<(), Error> {
     hero_cache::init_cache(&cfg.heroes_path).expect("Could not init hero cache");
     database_access::init_database(&cfg.database_path).await?;
 
-    if cfg.clear_commands_on_startup {
-        clear_commands_from_server(&cfg).await?;
-    }
-
     let cfg_for_scheduler = cfg.clone();
     let commands = discord::commands().await;
 
@@ -46,12 +53,18 @@ async fn main() -> Result<(), Error> {
     let http = serenity::http::Http::new(token.clone());
     http.set_application_id(http.get_current_application_info().await?.id);
 
-    info!("Registering application commands");
-    if let Some(guild_id) = cfg.test_guild {
-        let guild = serenity::GuildId::new(guild_id);
-        poise::builtins::register_in_guild(&http, &commands, guild).await?;
-    } else {
-        poise::builtins::register_globally(&http, &commands).await?;
+    if args.clear_commands {
+        clear_commands(&cfg, &http).await?;
+    }
+
+    if args.register {
+        info!("Registering application commands");
+        if let Some(guild_id) = cfg.test_guild {
+            let guild = serenity::GuildId::new(guild_id);
+            poise::builtins::register_in_guild(&http, &commands, guild).await?;
+        } else {
+            poise::builtins::register_globally(&http, &commands).await?;
+        }
     }
 
     let framework = poise::Framework::new(poise::FrameworkOptions {
@@ -83,13 +96,8 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn clear_commands_from_server(cfg: &config::AppConfig) -> Result<(), Error> {
+async fn clear_commands(cfg: &config::AppConfig, http: &serenity::http::Http) -> Result<(), Error> {
     info!("Clearing commands...");
-    let token = Token::from_env(&cfg.discord_api_key)?;
-    let http = serenity::http::Http::new(token);
-    let app_info = http.get_current_application_info().await?;
-    http.set_application_id(app_info.id);
-
     let empty_body: Vec<serde_json::Value> = Vec::new();
 
     info!("Clearing global commands...");
