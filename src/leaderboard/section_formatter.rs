@@ -4,7 +4,7 @@ use crate::database::hero_cache;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::str;
-use crate::util::dates::discord_date_from_timestamp;
+use crate::util::dates::format_short_date_from_timestamp;
 
 pub fn build_winrate_section(
     duration_label: &str,
@@ -236,7 +236,7 @@ pub fn build_single_match_stat_section(
         .collect();
     let date_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| discord_date_from_timestamp(selector(s).date))
+        .map(|s| format_short_date_from_timestamp(selector(s).date))
         .collect();
     let link_urls: Vec<String> = if include_links {
         sorted_stats
@@ -338,7 +338,7 @@ pub fn build_longest_match_section(
         .collect();
     let date_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| discord_date_from_timestamp(s.longest_match_stat.date))
+        .map(|s| format_short_date_from_timestamp(s.longest_match_stat.date))
         .collect();
     let link_urls: Vec<String> = if include_links {
         sorted_stats
