@@ -13,10 +13,7 @@ fn main() {
     fs::copy(&source_file, target_dir.join("dotacord.toml"))
         .expect(&format!("Failed to copy {}", source_file));
 
-    let data_dir = target_dir.join("data");
-    fs::create_dir_all(&data_dir).expect("Failed to create data directory");
-
-    fs::copy("data/heroes.json", data_dir.join("heroes.json"))
+    fs::copy("data/heroes.json", target_dir.join("heroes.json"))
         .expect("Failed to copy data/heroes.json");
 
     println!("cargo:rerun-if-changed={}", source_file);
