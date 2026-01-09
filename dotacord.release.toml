@@ -1,5 +1,5 @@
-database_path = "~/dev/rust/dotacord/data/dotacord.db"
-heroes_path = "~/dev/rust/dotacord/data/heroes.json"
+database_path = "~/db/dotacord/dotacord.db"
+heroes_path = "~/db/dotacord/heroes.json"
 api_key_var = "KEY_DOTACORD"
 
 online_status = "online"
