@@ -104,17 +104,23 @@ async fn main() -> Result<(), Error> {
                 }
             })
         },
+        prefix_options: poise::PrefixFrameworkOptions {
+            mention_as_prefix: false,
+            ..Default::default()
+        },
         ..Default::default()
     });
 
     let online_status = cfg.online_status;
     let cfg_arc = std::sync::Arc::new(Data { config: cfg });
-    let mut client =
-        serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
-            .status(online_status)
-            .data(cfg_arc)
-            .framework(Box::new(framework))
-            .await?;
+    let intents =
+        serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+    let mut client = serenity::ClientBuilder::new(token, intents)
+        .status(online_status)
+        .data(cfg_arc)
+        .framework(Box::new(framework))
+        .event_handler(std::sync::Arc::new(discord::mention_handler::MentionHandler))
+        .await?;
 
     let http_for_scheduler = client.http.clone();
     scheduler::spawn_scheduler(cfg_for_scheduler, http_for_scheduler);

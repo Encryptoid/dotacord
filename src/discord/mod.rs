@@ -3,6 +3,7 @@ use poise::serenity_prelude::Permissions;
 use crate::{Data, Error};
 
 mod discord_helper;
+pub(crate) mod mention_handler;
 pub(crate) mod leaderboard_command;
 mod misc_commands;
 mod register_command;
