@@ -1,8 +1,10 @@
 pub mod chat;
+pub mod tools;
 
 use std::sync::OnceLock;
 
 use llm::builder::{LLMBackend, LLMBuilder};
+use llm::chat::ToolChoice;
 use llm::LLMProvider;
 use tracing::info;
 
@@ -27,6 +29,9 @@ pub fn init_client(config: &AnthropicConfig) -> Result<(), Error> {
         .max_tokens(config.max_tokens)
         .reasoning_budget_tokens(config.reasoning_budget_tokens)
         .system(system_prompt)
+        .function(tools::get_recent_matches_tool())
+        .function(tools::get_match_details_tool())
+        .tool_choice(ToolChoice::Auto)
         .build()?;
 
     LLM_CLIENT.set(client).map_err(|_already| {

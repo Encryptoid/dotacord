@@ -140,6 +140,17 @@ pub async fn query_matches_by_player_id(player_id: i64) -> Result<Vec<player_mat
     Ok(rows)
 }
 
+pub async fn query_match_by_id(match_id: i64) -> Result<Vec<player_match::Model>, Error> {
+    let txn = database_access::get_transaction().await?;
+
+    let rows = PlayerMatch::find()
+        .filter(player_match::Column::MatchId.eq(match_id))
+        .all(&txn)
+        .await?;
+
+    Ok(rows)
+}
+
 pub async fn query_matches_by_duration(
     player_id: i64,
     start_date: i32,

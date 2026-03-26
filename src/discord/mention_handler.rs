@@ -1,9 +1,12 @@
 use poise::serenity_prelude::{self as serenity, async_trait, Context, FullEvent};
 
+use crate::ai::tools::ToolContext;
 use crate::database::{chat_messages_db, database_access, player_servers_db};
 
 pub struct MentionHandler {
     pub max_conversation_messages: u32,
+    pub max_recent_match_days: u64,
+    pub max_recent_matches: usize,
 }
 
 #[async_trait]
@@ -52,7 +55,8 @@ impl MentionHandler {
         let conversation_id = new_message.id.get() as i64;
         tracing::info!(message_text = %user_text, "Sending new conversation to AI");
 
-        match crate::ai::chat::send_message(&[], user_text).await {
+        let tool_ctx = self.build_tool_context(new_message);
+        match crate::ai::chat::send_message(&[], user_text, &tool_ctx).await {
             Ok(response) => {
                 tracing::info!(response = %response, "AI response");
                 match new_message.reply(&ctx.http, &response).await {
@@ -112,7 +116,8 @@ impl MentionHandler {
 
         tracing::info!(message_text = %user_text, history_len = history.len(), "Sending continuation to AI");
 
-        match crate::ai::chat::send_message(&history, user_text).await {
+        let tool_ctx = self.build_tool_context(new_message);
+        match crate::ai::chat::send_message(&history, user_text, &tool_ctx).await {
             Ok(response) => {
                 tracing::info!(response = %response, "AI response");
                 match new_message.reply(&ctx.http, &response).await {
@@ -131,6 +136,14 @@ impl MentionHandler {
                 }
             }
             Err(e) => tracing::error!("AI chat error: {:?}", e),
+        }
+    }
+
+    fn build_tool_context(&self, message: &serenity::Message) -> ToolContext {
+        ToolContext {
+            server_id: message.guild_id.map(|g| g.get() as i64).unwrap_or(0),
+            max_recent_match_days: self.max_recent_match_days,
+            max_recent_matches: self.max_recent_matches,
         }
     }
 

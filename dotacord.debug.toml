@@ -53,6 +53,8 @@ api_key_var = "KEY_ANTHROPIC"
 model = "claude-sonnet-4-20250514"
 max_tokens = 1024
 reasoning_budget_tokens = 1024
-max_conversation_messages = 20
+max_conversation_messages = 50
 system_prompt_path = "/home/l/dev/rust/dotacord/context/dotacord.md"
+max_recent_match_days = 7
+max_recent_matches = 20
 
