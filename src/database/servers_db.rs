@@ -148,3 +148,28 @@ pub async fn update_server_monthly_hour(server_id: i64, monthly_hour: i32) -> Re
     Ok(())
 }
 
+pub async fn insert_server(server_id: i64, server_name: &str) -> Result<(), Error> {
+    let txn = database_access::get_transaction().await?;
+    let existing = Server::find_by_id(server_id).one(&txn).await?;
+    if existing.is_some() {
+        println!("Server {} is already registered.", server_id);
+        return Ok(());
+    }
+    let new_server = server::ActiveModel {
+        server_id: Set(server_id),
+        server_name: Set(server_name.to_string()),
+        channel_id: Set(None),
+        is_sub_week: Set(0),
+        is_sub_month: Set(0),
+        is_sub_reload: Set(0),
+        weekly_day: Set(None),
+        weekly_hour: Set(None),
+        monthly_week: Set(None),
+        monthly_weekday: Set(None),
+        monthly_hour: Set(None),
+    };
+    Server::insert(new_server).exec(&txn).await?;
+    txn.commit().await?;
+    Ok(())
+}
+

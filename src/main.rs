@@ -8,7 +8,7 @@ mod markdown;
 mod scheduler;
 mod util;
 use ::serenity::all::Token;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use poise::serenity_prelude::{self as serenity};
 use tracing::info;
 
@@ -19,9 +19,20 @@ struct Args {
     clear_commands: bool,
     #[arg(short, long)]
     register: bool,
+    #[command(subcommand)]
+    command: Option<Command>,
 }
 
-use crate::database::{database_access, hero_cache};
+#[derive(Subcommand)]
+enum Command {
+    /// Register a Discord server in the database
+    RegisterServer {
+        server_id: u64,
+        server_name: String,
+    },
+}
+
+use crate::database::{database_access, hero_cache, servers_db};
 
 #[derive(Debug)]
 struct Data {
@@ -45,6 +56,14 @@ async fn main() -> Result<(), Error> {
 
     hero_cache::init_cache(&cfg.heroes_path).expect("Could not init hero cache");
     database_access::init_database(&cfg.database_path).await?;
+
+    if let Some(Command::RegisterServer { server_id, server_name }) = args.command {
+        if server_name.trim().is_empty() {
+            return Err(Error::from("server_name cannot be empty"));
+        }
+        servers_db::insert_server(server_id as i64, &server_name).await?;
+        return Ok(());
+    }
 
     let cfg_for_scheduler = cfg.clone();
     let commands = discord::commands().await;
