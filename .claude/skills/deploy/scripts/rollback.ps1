@@ -9,12 +9,27 @@ $RemoteBinary = "/opt/dotacord/dotacord"
 $Repo = "Encryptoid/dotacord"
 $DownloadUrl = "https://github.com/$Repo/releases/download/$Tag/dotacord"
 
-# Download release binary to VPS and restart
-Write-Host "Rolling back to $Tag..."
-
-ssh $VPS "curl -sfL '$DownloadUrl' -o $RemoteBinary && chmod +x $RemoteBinary && systemctl restart dotacord.service"
+# Stop the running service
+Write-Host "Stopping dotacord service..."
+ssh $VPS "systemctl stop dotacord.service"
 if ($LASTEXITCODE -ne 0) {
-    throw "Rollback failed"
+    throw "Failed to stop service"
+}
+
+# Download the release binary
+Write-Host "Downloading $Tag to VPS..."
+ssh $VPS "curl -sfL '$DownloadUrl' -o $RemoteBinary"
+if ($LASTEXITCODE -ne 0) {
+    throw "Rollback download failed"
+}
+
+ssh $VPS "chmod +x $RemoteBinary"
+
+# Start the service
+Write-Host "Starting dotacord service..."
+ssh $VPS "systemctl start dotacord.service"
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to start service"
 }
 
 # Verify service is running

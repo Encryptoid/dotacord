@@ -29,13 +29,28 @@ if ($LASTEXITCODE -ne 0) {
     throw "Release creation failed"
 }
 
-# Deploy to VPS
-$DownloadUrl = "https://github.com/$Repo/releases/download/$Tag/dotacord"
-Write-Host "Deploying $Tag to VPS..."
-
-ssh $VPS "curl -sfL '$DownloadUrl' -o $RemoteBinary && chmod +x $RemoteBinary && systemctl restart dotacord.service"
+# Stop the running service
+Write-Host "Stopping dotacord service..."
+ssh $VPS "systemctl stop dotacord.service"
 if ($LASTEXITCODE -ne 0) {
-    throw "Deploy failed"
+    throw "Failed to stop service"
+}
+
+# Download the release binary
+$DownloadUrl = "https://github.com/$Repo/releases/download/$Tag/dotacord"
+Write-Host "Downloading $Tag to VPS..."
+ssh $VPS "curl -sfL '$DownloadUrl' -o $RemoteBinary"
+if ($LASTEXITCODE -ne 0) {
+    throw "Download failed"
+}
+
+ssh $VPS "chmod +x $RemoteBinary"
+
+# Start the service
+Write-Host "Starting dotacord service..."
+ssh $VPS "systemctl start dotacord.service"
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to start service"
 }
 
 # Verify service is running
