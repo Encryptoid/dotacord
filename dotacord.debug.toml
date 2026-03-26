@@ -52,4 +52,6 @@ seq_endpoint = "http://localhost:5341/api/events/raw"
 api_key_var = "KEY_ANTHROPIC"
 model = "claude-sonnet-4-20250514"
 max_tokens = 1024
+reasoning_budget_tokens = 1024
+system_prompt_path = "/home/l/dev/rust/dotacord/context/dotacord.md"
 

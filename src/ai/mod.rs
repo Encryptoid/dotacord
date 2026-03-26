@@ -16,11 +16,17 @@ pub fn init_client(config: &AnthropicConfig) -> Result<(), Error> {
         format!("Failed to read env var '{}': {}", &config.api_key_var, e)
     })?;
 
+    let system_prompt = std::fs::read_to_string(&config.system_prompt_path).map_err(|e| {
+        format!("Failed to read system prompt '{}': {}", &config.system_prompt_path, e)
+    })?;
+
     let client = LLMBuilder::new()
         .backend(LLMBackend::Anthropic)
         .api_key(&api_key)
         .model(&config.model)
         .max_tokens(config.max_tokens)
+        .reasoning_budget_tokens(config.reasoning_budget_tokens)
+        .system(system_prompt)
         .build()?;
 
     LLM_CLIENT.set(client).map_err(|_already| {

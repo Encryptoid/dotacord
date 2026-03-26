@@ -83,6 +83,8 @@ pub struct AnthropicConfig {
     pub api_key_var: String,
     pub model: String,
     pub max_tokens: u32,
+    pub system_prompt_path: String,
+    pub reasoning_budget_tokens: u32,
 }
 
 #[derive(Clone, Debug)]
