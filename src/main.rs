@@ -1,3 +1,4 @@
+mod ai;
 mod api;
 mod config;
 mod database;
@@ -44,6 +45,10 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     if std::env::var("RUST_BACKTRACE").is_err() {
         std::env::set_var("RUST_BACKTRACE", "1");
     }
@@ -56,6 +61,7 @@ async fn main() -> Result<(), Error> {
 
     hero_cache::init_cache(&cfg.heroes_path).expect("Could not init hero cache");
     database_access::init_database(&cfg.database_path).await?;
+    ai::init_client(&cfg.anthropic)?;
 
     if let Some(Command::RegisterServer { server_id, server_name }) = args.command {
         if server_name.trim().is_empty() {

@@ -22,6 +22,7 @@ struct FileConfig {
     pub roll_countdown_duration_sec: u64,
     pub flip_countdown_duration_sec: u64,
     pub countdown_offset_ms: u64,
+    pub anthropic: AnthropicConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -31,6 +32,8 @@ struct FileLogConfig {
     pub json_path: String,
     pub seq_endpoint: Option<String>,
 }
+
+
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SchedulerConfig {
@@ -75,6 +78,13 @@ pub struct LogConfig {
     pub seq_endpoint: Option<String>,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct AnthropicConfig {
+    pub api_key_var: String,
+    pub model: String,
+    pub max_tokens: u32,
+}
+
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub struct AppConfig {
@@ -92,6 +102,7 @@ pub struct AppConfig {
     pub roll_countdown_duration_sec: u64,
     pub flip_countdown_duration_sec: u64,
     pub countdown_offset_ms: u64,
+    pub anthropic: AnthropicConfig,
 }
 
 fn expand_tilde(path: &str) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
@@ -153,6 +164,7 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
         roll_countdown_duration_sec: cfg.roll_countdown_duration_sec,
         flip_countdown_duration_sec: cfg.flip_countdown_duration_sec,
         countdown_offset_ms: cfg.countdown_offset_ms,
+        anthropic: cfg.anthropic,
     })
 }
 
