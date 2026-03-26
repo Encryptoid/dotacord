@@ -118,6 +118,7 @@ async fn main() -> Result<(), Error> {
     });
 
     let online_status = cfg.online_status;
+    let max_conversation_messages = cfg.anthropic.max_conversation_messages;
     let cfg_arc = std::sync::Arc::new(Data { config: cfg });
     let intents =
         serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
@@ -125,7 +126,9 @@ async fn main() -> Result<(), Error> {
         .status(online_status)
         .data(cfg_arc)
         .framework(Box::new(framework))
-        .event_handler(std::sync::Arc::new(discord::mention_handler::MentionHandler))
+        .event_handler(std::sync::Arc::new(discord::mention_handler::MentionHandler {
+            max_conversation_messages,
+        }))
         .await?;
 
     let http_for_scheduler = client.http.clone();

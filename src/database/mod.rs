@@ -1,3 +1,4 @@
+pub mod chat_messages_db;
 pub mod command_events_db;
 pub mod database_access;
 pub mod entities;

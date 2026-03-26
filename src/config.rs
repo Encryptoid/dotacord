@@ -85,6 +85,7 @@ pub struct AnthropicConfig {
     pub max_tokens: u32,
     pub system_prompt_path: String,
     pub reasoning_budget_tokens: u32,
+    pub max_conversation_messages: u32,
 }
 
 #[derive(Clone, Debug)]
