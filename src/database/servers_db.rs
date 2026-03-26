@@ -1,4 +1,5 @@
 use sea_orm::*;
+use tracing::info;
 
 use crate::database::database_access;
 use crate::database::entities::{server, Server};
@@ -170,6 +171,7 @@ pub async fn insert_server(server_id: i64, server_name: &str) -> Result<(), Erro
     };
     Server::insert(new_server).exec(&txn).await?;
     txn.commit().await?;
+    info!("Registered server {} (\"{}\")", server_id, server_name);
     Ok(())
 }
 
