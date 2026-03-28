@@ -13,7 +13,11 @@ pub async fn send_message(
     new_user_message: &str,
     tool_ctx: &ToolContext,
 ) -> Result<String, Error> {
-    let rules_context = build_rules_context(tool_ctx.server_id).await?;
+    let rules_context = if super::add_players_context() {
+        build_rules_context(tool_ctx.server_id).await?
+    } else {
+        String::new()
+    };
     let client = super::build_client(&rules_context)?;
 
     let mut messages: Vec<_> = history

@@ -17,6 +17,7 @@ struct AiConfig {
     max_tokens: u32,
     reasoning_budget_tokens: u32,
     base_system_prompt: String,
+    add_players_context: bool,
 }
 
 static AI_CONFIG: OnceLock<AiConfig> = OnceLock::new();
@@ -37,6 +38,7 @@ pub fn init_client(config: &AnthropicConfig) -> Result<(), Error> {
             max_tokens: config.max_tokens,
             reasoning_budget_tokens: config.reasoning_budget_tokens,
             base_system_prompt,
+            add_players_context: config.add_players_context,
         })
         .map_err(|_already| {
             Box::new(std::io::Error::new(
@@ -80,4 +82,8 @@ pub fn build_client(extra_context: &str) -> Result<Box<dyn LLMProvider>, Error> 
         .build()?;
 
     Ok(client)
+}
+
+pub fn add_players_context() -> bool {
+    AI_CONFIG.get().map_or(false, |c| c.add_players_context)
 }

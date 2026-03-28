@@ -88,6 +88,7 @@ pub struct AnthropicConfig {
     pub max_recent_match_days: Option<u64>,
     pub max_recent_matches: Option<usize>,
     pub top_winrate_count: Option<usize>,
+    pub add_players_context: bool,
 }
 
 #[derive(Clone, Debug)]
