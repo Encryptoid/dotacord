@@ -31,6 +31,7 @@ pub fn init_client(config: &AnthropicConfig) -> Result<(), Error> {
         .system(system_prompt)
         .function(tools::get_recent_matches_tool())
         .function(tools::get_match_details_tool())
+        .function(tools::get_hero_by_nickname_tool())
         .tool_choice(ToolChoice::Auto)
         .build()?;
 

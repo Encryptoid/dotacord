@@ -36,6 +36,20 @@ pub fn get_recent_matches_tool() -> FunctionBuilder {
         .required(vec!["username".to_string()])
 }
 
+pub fn get_hero_by_nickname_tool() -> FunctionBuilder {
+    FunctionBuilder::new("get_hero_by_nickname")
+        .description(
+            "Use this if the user is asking about a hero that you do not know, \
+             or has returned bad results from other tasks.",
+        )
+        .param(
+            ParamBuilder::new("nickname")
+                .type_of("string")
+                .description("Hero name or nickname (e.g. 'Tree' for Treant Protector, or 'Storm Spirit')"),
+        )
+        .required(vec!["nickname".to_string()])
+}
+
 pub fn get_match_details_tool() -> FunctionBuilder {
     FunctionBuilder::new("get_match_details")
         .description(
@@ -56,6 +70,7 @@ pub async fn execute_tool(tool_call: &ToolCall, ctx: &ToolContext) -> Result<Str
     match tool_call.function.name.as_str() {
         "get_recent_matches" => execute_get_recent_matches(&tool_call.function.arguments, ctx).await,
         "get_match_details" => execute_get_match_details(&tool_call.function.arguments, ctx).await,
+        "get_hero_by_nickname" => execute_get_hero_by_nickname(&tool_call.function.arguments).await,
         unknown => Ok(format!("{{\"error\": \"Unknown tool: {unknown}\"}}")),
     }
 }
@@ -342,5 +357,43 @@ async fn execute_get_match_details(arguments: &str, ctx: &ToolContext) -> Result
         duration_minutes: first.duration / 60,
         opendota_url: open_dota_links::match_url(match_id),
         players,
+    })?)
+}
+
+#[derive(Serialize)]
+struct HeroLookupResponse {
+    hero_id: i32,
+    name: String,
+    positions: Vec<String>,
+    nicknames: Vec<String>,
+}
+
+async fn execute_get_hero_by_nickname(arguments: &str) -> Result<String, Error> {
+    let args: serde_json::Value = serde_json::from_str(arguments)?;
+    let nickname = args["nickname"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'nickname' parameter"))?;
+
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
+
+    let Some(hero) = hero_lookup.find_by_name(nickname) else {
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!("No hero found matching '{}'.", nickname),
+        })?);
+    };
+
+    let mut positions = Vec::new();
+    if hero.is_carry { positions.push("Carry".to_string()); }
+    if hero.is_mid { positions.push("Mid".to_string()); }
+    if hero.is_offlane { positions.push("Offlane".to_string()); }
+    if hero.is_support { positions.push("Support".to_string()); }
+
+    let nicknames = hero_lookup.get_nicknames(hero.hero_id).to_vec();
+
+    Ok(serde_json::to_string(&HeroLookupResponse {
+        hero_id: hero.hero_id,
+        name: hero.name.clone(),
+        positions,
+        nicknames,
     })?)
 }
