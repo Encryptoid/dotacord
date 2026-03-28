@@ -4,6 +4,7 @@ use tracing::info;
 
 use super::tools::{self, ToolContext};
 use crate::database::chat_messages_db::ChatMessageModel;
+use crate::database::{player_rules_db, player_servers_db};
 use crate::Error;
 
 #[tracing::instrument(level = "trace", skip(history, new_user_message, tool_ctx))]
@@ -12,7 +13,8 @@ pub async fn send_message(
     new_user_message: &str,
     tool_ctx: &ToolContext,
 ) -> Result<String, Error> {
-    let client = super::get_client()?;
+    let rules_context = build_rules_context(tool_ctx.server_id).await?;
+    let client = super::build_client(&rules_context)?;
 
     let mut messages: Vec<_> = history
         .iter()
@@ -68,4 +70,44 @@ pub async fn send_message(
     }
 
     Err("Too many tool call rounds".into())
+}
+
+async fn build_rules_context(server_id: i64) -> Result<String, Error> {
+    let players = player_servers_db::query_server_players(server_id).await?;
+    if players.is_empty() {
+        return Ok(String::new());
+    }
+
+    let rules = player_rules_db::query_rules_by_server(server_id).await?;
+
+    let mut rules_by_user: std::collections::HashMap<i64, Vec<&str>> =
+        std::collections::HashMap::new();
+    for rule in &rules {
+        rules_by_user
+            .entry(rule.discord_user_id)
+            .or_default()
+            .push(&rule.rule_text);
+    }
+
+    let mut output = String::from(
+        "## Registered Players\n\nThese are the players registered on this Discord server. \
+         Messages from them will appear as `DisplayName: message`. Follow any rules listed under each player.\n",
+    );
+    for player in &players {
+        let display_name = player
+            .player_name
+            .as_deref()
+            .unwrap_or(&player.discord_name);
+        output.push_str(&format!("\n### {}\n", display_name));
+
+        if let Some(discord_user_id) = player.discord_user_id {
+            if let Some(rule_texts) = rules_by_user.get(&discord_user_id) {
+                for text in rule_texts {
+                    output.push_str(&format!("- {}\n", text));
+                }
+            }
+        }
+    }
+
+    Ok(output)
 }

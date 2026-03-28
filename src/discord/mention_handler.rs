@@ -31,7 +31,7 @@ impl serenity::EventHandler for MentionHandler {
                 return;
             }
 
-            let user_text = format!("@{display_name}: {text}");
+            let user_text = format!("{display_name}: {text}");
             tracing::info!(user = %new_message.author.name, display_name = %display_name, content = %new_message.content, "Received AI chat message");
 
             match replied_to {
@@ -201,7 +201,7 @@ async fn resolve_display_name(message: &serenity::Message) -> String {
             guild_id.get() as i64,
             message.author.id.get() as i64,
         ).await {
-            return player.discord_name;
+            return player.player_name.unwrap_or(player.discord_name);
         }
     }
     message.author.display_name().to_string()

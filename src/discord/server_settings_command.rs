@@ -11,7 +11,7 @@ use serenity::all::{
 use tracing::info;
 
 use crate::database::player_servers_db::PlayerServerModel;
-use crate::database::{database_access, player_servers_db, servers_db};
+use crate::database::{database_access, player_rules_db, player_servers_db, servers_db};
 use crate::discord::discord_helper::{self, CmdCtx};
 use crate::leaderboard::emoji::Emoji;
 use crate::{Context, Error};
@@ -36,8 +36,14 @@ const SELECT_ID_PLAYER: &str = "dotacord_player_select";
 const BUTTON_ID_SET_ID: &str = "dotacord_player_set_id";
 const BUTTON_ID_SET_NAME: &str = "dotacord_player_set_name";
 const BUTTON_ID_REMOVE: &str = "dotacord_player_remove";
+const BUTTON_ID_RULES: &str = "dotacord_player_rules";
 const MODAL_ID_SET_ID: &str = "dotacord_modal_set_id";
 const MODAL_ID_SET_NAME: &str = "dotacord_modal_set_name";
+
+const SELECT_ID_RULE: &str = "dotacord_rule_select";
+const BUTTON_ID_ADD_RULE: &str = "dotacord_rule_add";
+const BUTTON_ID_REMOVE_RULE: &str = "dotacord_rule_remove";
+const MODAL_ID_ADD_RULE: &str = "dotacord_modal_add_rule";
 
 #[derive(Clone, Copy, PartialEq)]
 enum Panel {
@@ -45,6 +51,7 @@ enum Panel {
     Weekly,
     Monthly,
     Players,
+    Rules,
 }
 
 struct ServerState {
@@ -59,6 +66,8 @@ struct ServerState {
     monthly_hour: Option<i32>,
     selected_discord_user: Option<(i64, String)>,
     players: Vec<PlayerServerModel>,
+    rules: Vec<player_rules_db::PlayerRuleModel>,
+    selected_rule_id: Option<i32>,
 }
 
 /// [Admin] Open the admin panel for the server
@@ -91,6 +100,8 @@ async fn generate_admin_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
         monthly_hour: server.monthly_hour,
         selected_discord_user: None,
         players,
+        rules: Vec::new(),
+        selected_rule_id: None,
     };
 
     let mut current_panel = Panel::Main;
@@ -144,11 +155,31 @@ async fn generate_admin_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                 current_panel = Panel::Monthly;
             }
             BUTTON_ID_BACK => {
-                current_panel = Panel::Main;
-                state.selected_discord_user = None;
+                match current_panel {
+                    Panel::Rules => {
+                        current_panel = Panel::Players;
+                        state.selected_rule_id = None;
+                    }
+                    _ => {
+                        current_panel = Panel::Main;
+                        state.selected_discord_user = None;
+                        state.selected_rule_id = None;
+                    }
+                }
             }
             BUTTON_ID_PLAYERS => {
                 current_panel = Panel::Players;
+            }
+            BUTTON_ID_RULES => {
+                if let Some((discord_user_id, _)) = state.selected_discord_user {
+                    state.rules = player_rules_db::query_rules_by_player(
+                        ctx.guild_id,
+                        discord_user_id,
+                    )
+                    .await?;
+                    state.selected_rule_id = None;
+                    current_panel = Panel::Rules;
+                }
             }
             SELECT_ID_CHANNEL => {
                 if let ComponentInteractionDataKind::ChannelSelect { values } = &interaction.data.kind {
@@ -402,6 +433,108 @@ async fn generate_admin_panel(ctx: &CmdCtx<'_>) -> Result<(), Error> {
                     }
                 }
             }
+            SELECT_ID_RULE => {
+                if let ComponentInteractionDataKind::StringSelect { values } = &interaction.data.kind {
+                    if let Some(value) = values.first() {
+                        if let Ok(rule_id) = value.parse::<i32>() {
+                            state.selected_rule_id = Some(rule_id);
+                        }
+                    }
+                }
+            }
+            BUTTON_ID_ADD_RULE => {
+                if let Some((discord_user_id, _)) = state.selected_discord_user {
+                    let modal = CreateModal::new(MODAL_ID_ADD_RULE, "Add Player Rule").components(vec![
+                        CreateModalComponent::Label(CreateLabel::input_text(
+                            "Rule",
+                            CreateInputText::new(InputTextStyle::Paragraph, "rule_text")
+                                .placeholder("e.g. Always refer to this player as 'The Legend'".to_string())
+                                .required(true)
+                                .min_length(1)
+                                .max_length(500),
+                        )),
+                    ]);
+
+                    interaction
+                        .create_response(
+                            &ctx.discord_ctx.serenity_context().http,
+                            CreateInteractionResponse::Modal(modal),
+                        )
+                        .await?;
+
+                    if let Some(modal_interaction) =
+                        ModalInteractionCollector::new(ctx.discord_ctx.serenity_context())
+                            .author_id(ctx.discord_ctx.author().id)
+                            .timeout(Duration::from_secs(60))
+                            .filter(move |m| m.data.custom_id == MODAL_ID_ADD_RULE)
+                            .await
+                    {
+                        let rule_text = extract_modal_value(&modal_interaction.data.components)
+                            .unwrap_or_default();
+
+                        if !rule_text.is_empty() {
+                            let txn = database_access::get_transaction().await?;
+                            player_rules_db::insert_rule(
+                                &txn,
+                                ctx.guild_id,
+                                discord_user_id,
+                                &rule_text,
+                            )
+                            .await?;
+                            txn.commit().await?;
+
+                            state.rules = player_rules_db::query_rules_by_player(
+                                ctx.guild_id,
+                                discord_user_id,
+                            )
+                            .await?;
+
+                            info!(
+                                server_id = ctx.guild_id,
+                                discord_user_id,
+                                rule_text = %rule_text,
+                                "Player rule added via admin panel"
+                            );
+                        }
+
+                        let (new_content, new_components) = build_panel(current_panel, &state);
+                        modal_interaction
+                            .create_response(
+                                &ctx.discord_ctx.serenity_context().http,
+                                CreateInteractionResponse::UpdateMessage(
+                                    CreateInteractionResponseMessage::default()
+                                        .content(new_content)
+                                        .components(new_components),
+                                ),
+                            )
+                            .await?;
+                    }
+                    continue;
+                }
+            }
+            BUTTON_ID_REMOVE_RULE => {
+                if let Some((discord_user_id, _)) = state.selected_discord_user {
+                    if let Some(rule_id) = state.selected_rule_id {
+                        let txn = database_access::get_transaction().await?;
+                        player_rules_db::delete_rule(&txn, rule_id).await?;
+                        txn.commit().await?;
+
+                        state.rules = player_rules_db::query_rules_by_player(
+                            ctx.guild_id,
+                            discord_user_id,
+                        )
+                        .await?;
+                        state.selected_rule_id = None;
+
+                        info!(
+                            server_id = ctx.guild_id,
+                            discord_user_id,
+                            rule_id,
+                            "Player rule removed via admin panel"
+                        );
+                    }
+                }
+            }
             BUTTON_ID_REMOVE => {
                 if let Some((discord_user_id, _)) = state.selected_discord_user {
                     let txn = database_access::get_transaction().await?;
@@ -458,6 +591,7 @@ fn build_panel(panel: Panel, state: &ServerState) -> (String, Vec<CreateComponen
         Panel::Weekly => build_weekly_panel(state),
         Panel::Monthly => build_monthly_panel(state),
         Panel::Players => build_players_panel(state),
+        Panel::Rules => build_rules_panel(state),
     }
 }
 
@@ -754,6 +888,13 @@ fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
         !has_selection || !is_existing_player,
     );
 
+    let rules_btn = build_player_action_button(
+        BUTTON_ID_RULES,
+        "Rules",
+        Emoji::NERD,
+        !has_selection || !is_existing_player,
+    );
+
     let mut remove_btn = CreateButton::new(BUTTON_ID_REMOVE)
         .style(ButtonStyle::Danger)
         .label("Remove".to_string())
@@ -762,7 +903,7 @@ fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
         remove_btn = remove_btn.emoji(emoji);
     }
 
-    let action_row = CreateActionRow::Buttons(vec![set_id_btn, set_name_btn, remove_btn].into());
+    let action_row = CreateActionRow::Buttons(vec![set_id_btn, set_name_btn, rules_btn, remove_btn].into());
 
     let back_btn = CreateButton::new(BUTTON_ID_BACK)
         .style(ButtonStyle::Secondary)
@@ -774,6 +915,81 @@ fn build_players_panel(state: &ServerState) -> (String, Vec<CreateComponent<'sta
         CreateComponent::ActionRow(action_row),
         CreateComponent::ActionRow(back_row),
     ];
+
+    (content, components)
+}
+
+fn build_rules_panel(state: &ServerState) -> (String, Vec<CreateComponent<'static>>) {
+    let (_, discord_name) = state
+        .selected_discord_user
+        .as_ref()
+        .map(|(id, name)| (*id, name.as_str()))
+        .unwrap_or((0, "Unknown"));
+
+    let rules_list = if state.rules.is_empty() {
+        "\n> No rules set for this player.".to_string()
+    } else {
+        let mut list = String::new();
+        for (i, rule) in state.rules.iter().enumerate() {
+            list.push_str(&format!("\n{}. {}", i + 1, rule.rule_text));
+        }
+        list
+    };
+
+    let content = format!(
+        "## {} **Rules for @{}** {}{}",
+        Emoji::NERD, discord_name, Emoji::ORACLE_BURN, rules_list
+    );
+
+    let mut components = Vec::new();
+
+    if !state.rules.is_empty() {
+        let options: Vec<CreateSelectMenuOption> = state
+            .rules
+            .iter()
+            .enumerate()
+            .map(|(i, rule)| {
+                let label = if rule.rule_text.len() > 95 {
+                    format!("{}. {}...", i + 1, &rule.rule_text[..92])
+                } else {
+                    format!("{}. {}", i + 1, rule.rule_text)
+                };
+                CreateSelectMenuOption::new(label, rule.id.to_string())
+                    .default_selection(state.selected_rule_id == Some(rule.id))
+            })
+            .collect();
+
+        let rule_select = CreateSelectMenu::new(
+            SELECT_ID_RULE.to_string(),
+            CreateSelectMenuKind::String {
+                options: options.into(),
+            },
+        )
+        .placeholder("Select a rule to remove".to_string());
+
+        components.push(CreateComponent::ActionRow(CreateActionRow::SelectMenu(rule_select)));
+    }
+
+    let add_btn = build_player_action_button(
+        BUTTON_ID_ADD_RULE,
+        "Add Rule",
+        Emoji::GOODJOB,
+        false,
+    );
+
+    let mut remove_btn = CreateButton::new(BUTTON_ID_REMOVE_RULE)
+        .style(ButtonStyle::Danger)
+        .label("Remove Rule".to_string())
+        .disabled(state.selected_rule_id.is_none());
+    if let Some(emoji) = discord_helper::parse_custom_emoji(Emoji::GRAVE) {
+        remove_btn = remove_btn.emoji(emoji);
+    }
+
+    let action_row = CreateActionRow::Buttons(vec![add_btn, remove_btn].into());
+    components.push(CreateComponent::ActionRow(action_row));
+
+    let back_row = build_back_button_row();
+    components.push(CreateComponent::ActionRow(back_row));
 
     (content, components)
 }
