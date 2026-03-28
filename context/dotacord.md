@@ -10,6 +10,7 @@ You have access to tools that let you look up real Dota 2 match data. When users
 - `get_recent_matches` - Look up a player's recent matches by their username
 - `get_match_details` - Get detailed info about a specific match by match ID
 
+- `search_matches_by_hero(player_id, hero)
 ## Response Instructions
 
 When responding to user messages, you should:

@@ -11,6 +11,31 @@ $Repo = "Encryptoid/dotacord"
 $LocalBinary = "target/release/dotacord"
 $LocalContext = "context/dotacord.md"
 $RemoteContext = "/opt/dotacord/context/dotacord.md"
+$LocalConfig = "dotacord.release.toml"
+$RemoteConfig = "/opt/dotacord/dotacord.toml"
+
+# Diff config: compare local release config with VPS config
+Write-Host "Checking config diff..."
+$TempRemote = [System.IO.Path]::GetTempFileName()
+scp "${VPS}:${RemoteConfig}" $TempRemote 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  No remote config found - will upload local config."
+    $ConfigAction = "upload"
+}
+else {
+    $diff = diff $LocalConfig $TempRemote
+    if ($diff) {
+        Write-Host "  Config differences detected:"
+        Write-Host ($diff | Out-String)
+        $answer = Read-Host "Upload local config to VPS? (y/n)"
+        $ConfigAction = if ($answer -eq "y") { "upload" } else { "skip" }
+    }
+    else {
+        Write-Host "  Config is up to date."
+        $ConfigAction = "skip"
+    }
+}
+Remove-Item $TempRemote -ErrorAction SilentlyContinue
 
 # Build
 Write-Host "Building release..."
@@ -54,6 +79,15 @@ Write-Host "Downloading context file to VPS..."
 ssh $VPS "mkdir -p /opt/dotacord/context && curl -sfL '$ContextUrl' -o $RemoteContext"
 if ($LASTEXITCODE -ne 0) {
     throw "Context file download failed"
+}
+
+# Upload config if needed
+if ($ConfigAction -eq "upload") {
+    Write-Host "Uploading config to VPS..."
+    scp $LocalConfig "${VPS}:${RemoteConfig}"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Config upload failed"
+    }
 }
 
 # Start the service

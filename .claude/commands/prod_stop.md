@@ -1,0 +1,1 @@
+INTERCEPT: pwsh -NOPROFILE -c "/home/l/dev/rust/dotacord/scripts/prod_stop.ps1"
