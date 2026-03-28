@@ -7,6 +7,7 @@ pub struct MentionHandler {
     pub max_conversation_messages: u32,
     pub max_recent_match_days: u64,
     pub max_recent_matches: usize,
+    pub top_winrate_count: usize,
 }
 
 #[async_trait]
@@ -144,6 +145,7 @@ impl MentionHandler {
             server_id: message.guild_id.map(|g| g.get() as i64).unwrap_or(0),
             max_recent_match_days: self.max_recent_match_days,
             max_recent_matches: self.max_recent_matches,
+            top_winrate_count: self.top_winrate_count,
         }
     }
 

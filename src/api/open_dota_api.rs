@@ -47,3 +47,29 @@ pub(crate) async fn get_player_matches(
 
     Ok(matches)
 }
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Deserialize)]
+pub struct ApiHeroStat {
+    pub id: i32,
+    pub localized_name: String,
+    pub pub_pick: i64,
+    pub pub_win: i64,
+    pub pub_pick_trend: Vec<i64>,
+}
+
+#[tracing::instrument(level = "trace")]
+pub(crate) async fn get_hero_stats() -> Result<Vec<ApiHeroStat>, reqwest::Error> {
+    let url = format!("{BASE_URL}/heroStats");
+    info!(url, "Fetching API hero stats");
+    let response = reqwest::Client::new()
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?;
+
+    let stats = response.json::<Vec<ApiHeroStat>>().await?;
+    info!(count = stats.len(), "Fetched hero stats from OpenDota");
+
+    Ok(stats)
+}

@@ -48,4 +48,5 @@ max_conversation_messages = 50
 system_prompt_path = "/opt/dotacord/context/dotacord.md"
 max_recent_match_days = 7
 max_recent_matches = 20
+top_winrate_count = 10
 

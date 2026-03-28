@@ -120,6 +120,7 @@ async fn main() -> Result<(), Error> {
     let max_conversation_messages = cfg.anthropic.max_conversation_messages;
     let max_recent_match_days = cfg.anthropic.max_recent_match_days.unwrap_or(7);
     let max_recent_matches = cfg.anthropic.max_recent_matches.unwrap_or(20);
+    let top_winrate_count = cfg.anthropic.top_winrate_count.unwrap_or(10);
     let cfg_arc = std::sync::Arc::new(Data { config: cfg });
     let intents =
         serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
@@ -131,6 +132,7 @@ async fn main() -> Result<(), Error> {
             max_conversation_messages,
             max_recent_match_days,
             max_recent_matches,
+            top_winrate_count,
         }))
         .await?;
 

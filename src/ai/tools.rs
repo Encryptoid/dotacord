@@ -6,7 +6,7 @@ use llm::ToolCall;
 use serde::Serialize;
 use tracing::info;
 
-use crate::api::open_dota_links;
+use crate::api::{hero_stats_cache, open_dota_links};
 use crate::database::{heroes_db, player_matches_db, player_servers_db};
 use crate::Error;
 
@@ -16,6 +16,7 @@ pub struct ToolContext {
     pub server_id: i64,
     pub max_recent_match_days: u64,
     pub max_recent_matches: usize,
+    pub top_winrate_count: usize,
 }
 
 pub fn max_tool_rounds() -> usize {
@@ -50,6 +51,26 @@ pub fn get_hero_by_nickname_tool() -> FunctionBuilder {
         .required(vec!["nickname".to_string()])
 }
 
+pub fn top_winrate_heroes_tool() -> FunctionBuilder {
+    FunctionBuilder::new("top_winrate_heroes")
+        .description(
+            "Get the top Dota 2 heroes by overall win rate for a position. \
+             Returns heroes sorted by win rate descending.",
+        )
+        .param(
+            ParamBuilder::new("position")
+                .type_of("string")
+                .description("The position to filter by")
+                .enum_values(vec![
+                    "Carry".to_string(),
+                    "Mid".to_string(),
+                    "Offlane".to_string(),
+                    "Support".to_string(),
+                ]),
+        )
+        .required(vec!["position".to_string()])
+}
+
 pub fn get_match_details_tool() -> FunctionBuilder {
     FunctionBuilder::new("get_match_details")
         .description(
@@ -71,6 +92,7 @@ pub async fn execute_tool(tool_call: &ToolCall, ctx: &ToolContext) -> Result<Str
         "get_recent_matches" => execute_get_recent_matches(&tool_call.function.arguments, ctx).await,
         "get_match_details" => execute_get_match_details(&tool_call.function.arguments, ctx).await,
         "get_hero_by_nickname" => execute_get_hero_by_nickname(&tool_call.function.arguments).await,
+        "top_winrate_heroes" => execute_top_winrate_heroes(&tool_call.function.arguments, ctx).await,
         unknown => Ok(format!("{{\"error\": \"Unknown tool: {unknown}\"}}")),
     }
 }
@@ -396,4 +418,70 @@ async fn execute_get_hero_by_nickname(arguments: &str) -> Result<String, Error> 
         positions,
         nicknames,
     })?)
+}
+
+#[derive(Serialize)]
+struct HeroWinRate {
+    hero: String,
+    win_rate_pct: f64,
+    pick_trend_pct: f64,
+}
+
+async fn execute_top_winrate_heroes(arguments: &str, ctx: &ToolContext) -> Result<String, Error> {
+    let args: serde_json::Value = serde_json::from_str(arguments)?;
+    let position_str = args["position"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'position' parameter"))?;
+
+    let position = match position_str {
+        "Carry" => heroes_db::Position::Carry,
+        "Mid" => heroes_db::Position::Mid,
+        "Offlane" => heroes_db::Position::Offlane,
+        "Support" => heroes_db::Position::Support,
+        _ => {
+            return Ok(serde_json::to_string(&ErrorResponse {
+                error: format!("Invalid position '{}'. Use Carry, Mid, Offlane, or Support.", position_str),
+            })?);
+        }
+    };
+
+    let heroes = heroes_db::query_heroes_by_position(&position).await?;
+    let hero_ids: std::collections::HashSet<i32> = heroes.iter().map(|h| h.hero_id).collect();
+
+    let stats = hero_stats_cache::get_hero_stats().await?;
+
+    let mut results: Vec<HeroWinRate> = stats
+        .iter()
+        .filter(|s| hero_ids.contains(&s.id) && s.pub_pick >= 100)
+        .map(|s| {
+            let win_rate_pct = if s.pub_pick > 0 {
+                ((s.pub_win as f64 / s.pub_pick as f64) * 1000.0).round() / 10.0
+            } else {
+                0.0
+            };
+
+            let pick_trend_pct = if s.pub_pick_trend.len() >= 2 {
+                let first = s.pub_pick_trend[0] as f64;
+                let last = *s.pub_pick_trend.last().unwrap() as f64;
+                if first > 0.0 {
+                    (((last - first) / first) * 1000.0).round() / 10.0
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            };
+
+            HeroWinRate {
+                hero: s.localized_name.clone(),
+                win_rate_pct,
+                pick_trend_pct,
+            }
+        })
+        .collect();
+
+    results.sort_by(|a, b| b.win_rate_pct.partial_cmp(&a.win_rate_pct).unwrap_or(std::cmp::Ordering::Equal));
+    results.truncate(ctx.top_winrate_count);
+
+    Ok(serde_json::to_string(&results)?)
 }

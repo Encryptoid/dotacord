@@ -87,6 +87,7 @@ pub struct AnthropicConfig {
     pub max_conversation_messages: u32,
     pub max_recent_match_days: Option<u64>,
     pub max_recent_matches: Option<usize>,
+    pub top_winrate_count: Option<usize>,
 }
 
 #[derive(Clone, Debug)]
