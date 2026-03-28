@@ -86,6 +86,25 @@ pub fn top_winrate_heroes_tool() -> FunctionBuilder {
         .required(vec!["position".to_string()])
 }
 
+pub fn get_player_hero_stats_tool() -> FunctionBuilder {
+    FunctionBuilder::new("get_player_hero_stats")
+        .description(
+            "Get a player's stats on a specific Dota 2 hero. \
+             Returns their last 5 games on the hero, overall win rate, and total games played.",
+        )
+        .param(
+            ParamBuilder::new("username")
+                .type_of("string")
+                .description("Discord display name or Dota username of the player"),
+        )
+        .param(
+            ParamBuilder::new("hero_name")
+                .type_of("string")
+                .description("Hero name or nickname (e.g. 'Storm Spirit', 'Tree')"),
+        )
+        .required(vec!["username".to_string(), "hero_name".to_string()])
+}
+
 pub fn get_global_hero_stats_tool() -> FunctionBuilder {
     FunctionBuilder::new("get_global_hero_stats")
         .description(
@@ -124,6 +143,7 @@ pub async fn execute_tool(tool_call: &ToolCall, ctx: &ToolContext) -> Result<Str
         "get_hero_by_nickname" => execute_get_hero_by_nickname(&tool_call.function.arguments).await,
         "top_winrate_heroes" => execute_top_winrate_heroes(&tool_call.function.arguments, ctx).await,
         "get_global_hero_stats" => execute_get_global_hero_stats(&tool_call.function.arguments).await,
+        "get_player_hero_stats" => execute_get_player_hero_stats(&tool_call.function.arguments, ctx).await,
         unknown => Ok(format!("{{\"error\": \"Unknown tool: {unknown}\"}}")),
     }
 }
@@ -556,5 +576,99 @@ async fn execute_get_global_hero_stats(arguments: &str) -> Result<String, Error>
         win_rate_pct,
         pick_trend_pct,
         positions,
+    })?)
+}
+
+#[derive(Serialize)]
+struct PlayerHeroMatch {
+    match_id: i64,
+    won: bool,
+    kills: i32,
+    deaths: i32,
+    assists: i32,
+    date: String,
+    duration_minutes: i32,
+}
+
+#[derive(Serialize)]
+struct PlayerHeroStatsResponse {
+    player_name: String,
+    hero: String,
+    total_games: usize,
+    win_rate_pct: f64,
+    recent_matches: Vec<PlayerHeroMatch>,
+}
+
+async fn execute_get_player_hero_stats(arguments: &str, ctx: &ToolContext) -> Result<String, Error> {
+    let args: serde_json::Value = serde_json::from_str(arguments)?;
+    let username = args["username"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'username' parameter"))?;
+    let hero_name = args["hero_name"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'hero_name' parameter"))?;
+
+    let server_players = player_servers_db::query_server_players(ctx.server_id).await?;
+
+    let target = find_player_by_name(username, &server_players);
+    let Some(target) = target else {
+        let available: Vec<&str> = server_players.iter().map(|p| p.discord_name.as_str()).collect();
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!(
+                "Player '{}' not found in this server. Available players: {}",
+                username,
+                available.join(", ")
+            ),
+        })?);
+    };
+
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
+    let Some(hero) = hero_lookup.find_by_name(hero_name) else {
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!("No hero found matching '{}'.", hero_name),
+        })?);
+    };
+
+    let display_name = target
+        .player_name
+        .clone()
+        .unwrap_or_else(|| target.discord_name.clone());
+
+    let matches = player_matches_db::query_matches_by_hero(target.player_id, hero.hero_id).await?;
+
+    let total_games = matches.len();
+    let wins = matches.iter().filter(|m| m.is_victory).count();
+    let win_rate_pct = if total_games > 0 {
+        ((wins as f64 / total_games as f64) * 1000.0).round() / 10.0
+    } else {
+        0.0
+    };
+
+    let recent_matches: Vec<PlayerHeroMatch> = matches
+        .iter()
+        .take(5)
+        .map(|m| {
+            let date = chrono::DateTime::from_timestamp(m.start_time, 0)
+                .map(|dt| dt.format("%Y-%m-%d %H:%M UTC").to_string())
+                .unwrap_or_else(|| "Unknown".to_string());
+
+            PlayerHeroMatch {
+                match_id: m.match_id,
+                won: m.is_victory,
+                kills: m.kills,
+                deaths: m.deaths,
+                assists: m.assists,
+                date,
+                duration_minutes: m.duration / 60,
+            }
+        })
+        .collect();
+
+    Ok(serde_json::to_string(&PlayerHeroStatsResponse {
+        player_name: display_name,
+        hero: hero.name.clone(),
+        total_games,
+        win_rate_pct,
+        recent_matches,
     })?)
 }

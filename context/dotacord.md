@@ -12,6 +12,8 @@ You have access to tools that let you look up real Dota 2 match data. When users
 - `get_hero_by_nickname` - Look up a hero by name or nickname
 - `top_winrate_heroes` - Get top heroes by win rate for a position (Carry, Mid, Offlane, or Support)
 - `get_global_hero_stats` - Get the global win rate, pick trend, and position(s) for a specific hero
+- `get_player_hero_stats` - Get a player's stats on a specific hero (last 5 games, win rate, total games)
+
 ## Response Instructions
 
 When responding to user messages, you should:

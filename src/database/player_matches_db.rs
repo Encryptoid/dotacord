@@ -153,6 +153,22 @@ pub async fn query_match_by_id(match_id: i64) -> Result<Vec<player_match::Model>
     Ok(rows)
 }
 
+pub async fn query_matches_by_hero(
+    player_id: i64,
+    hero_id: i32,
+) -> Result<Vec<player_match::Model>, Error> {
+    let txn = database_access::get_transaction().await?;
+
+    let rows = PlayerMatch::find()
+        .filter(player_match::Column::PlayerId.eq(player_id))
+        .filter(player_match::Column::HeroId.eq(hero_id))
+        .order_by_desc(player_match::Column::StartTime)
+        .all(&txn)
+        .await?;
+
+    Ok(rows)
+}
+
 pub async fn query_matches_by_duration(
     player_id: i64,
     start_date: i32,
