@@ -13,9 +13,5 @@ fn main() {
     fs::copy(&source_file, target_dir.join("dotacord.toml"))
         .expect(&format!("Failed to copy {}", source_file));
 
-    fs::copy("data/heroes.json", target_dir.join("heroes.json"))
-        .expect("Failed to copy data/heroes.json");
-
     println!("cargo:rerun-if-changed={}", source_file);
-    println!("cargo:rerun-if-changed=data/heroes.json");
 }

@@ -1,6 +1,6 @@
 use super::stats_calculator::PlayerStats;
 use crate::api::open_dota_links;
-use crate::database::hero_cache;
+use crate::database::heroes_db::HeroLookup;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::markdown::{Link, TableBuilder, Text};
 use crate::str;
@@ -97,6 +97,7 @@ pub fn build_hero_spam_section(
     right_emoji: &str,
     label: &str,
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     let mut sorted_stats: Vec<_> = all_stats
         .iter()
@@ -119,7 +120,7 @@ pub fn build_hero_spam_section(
         / winner.overall_stats.total_matches as f64)
         * 100.0;
     let hero_name =
-        hero_cache::get_hero_by_id(winner.hero_pick_stat.hero_id).unwrap_or("Unknown Hero");
+        hero_lookup.get_name(winner.hero_pick_stat.hero_id).unwrap_or("Unknown Hero");
     let title = format!(
         "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {} - `{:.0}% {}`",
         winner.player_name, hero_name, pick_rate, "Hero Pick Rate"
@@ -144,7 +145,7 @@ pub fn build_hero_spam_section(
                 sorted_stats
                     .iter()
                     .map(|s| {
-                        str!(hero_cache::get_hero_by_id(s.hero_pick_stat.hero_id)
+                        str!(hero_lookup.get_name(s.hero_pick_stat.hero_id)
                             .unwrap_or("Unknown Hero"))
                     })
                     .collect(),
@@ -203,6 +204,7 @@ pub fn build_single_match_stat_section(
     label: &str,
     stat_name: &str,
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     // Filter and sort once
     let mut sorted_stats: Vec<_> = all_stats.iter().filter(|s| selector(s).value > 0).collect();
@@ -216,7 +218,7 @@ pub fn build_single_match_stat_section(
 
     let winner = sorted_stats.first()?;
     let winner_stat = selector(winner);
-    let hero_name = hero_cache::get_hero_by_id(winner_stat.hero_id).unwrap_or("Unknown Hero");
+    let hero_name = hero_lookup.get_name(winner_stat.hero_id).unwrap_or("Unknown Hero");
     let title = format!(
         "[{duration_label}] - {left_emoji} {label} {right_emoji} - __*{}*__ - {} - `{} {}`",
         winner.player_name, hero_name, winner_stat.value, stat_name
@@ -229,7 +231,7 @@ pub fn build_single_match_stat_section(
         .collect();
     let hero_column: Vec<String> = sorted_stats
         .iter()
-        .map(|s| str!(hero_cache::get_hero_by_id(selector(s).hero_id).unwrap_or("Unknown Hero")))
+        .map(|s| str!(hero_lookup.get_name(selector(s).hero_id).unwrap_or("Unknown Hero")))
         .collect();
     let outcome_column: Vec<String> = sorted_stats
         .iter()
@@ -299,6 +301,7 @@ pub fn build_longest_match_section(
     label: &str,
     stat_name: &str,
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     // Filter and sort once
     let mut sorted_stats: Vec<_> = all_stats
@@ -330,7 +333,7 @@ pub fn build_longest_match_section(
     let hero_column: Vec<String> = sorted_stats
         .iter()
         .map(|s| {
-            str!(hero_cache::get_hero_by_id(s.longest_match_stat.hero_id).unwrap_or("Unknown Hero"))
+            str!(hero_lookup.get_name(s.longest_match_stat.hero_id).unwrap_or("Unknown Hero"))
         })
         .collect();
     let outcome_column: Vec<String> = sorted_stats

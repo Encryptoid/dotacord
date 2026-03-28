@@ -33,7 +33,7 @@ enum Command {
     },
 }
 
-use crate::database::{database_access, hero_cache, servers_db};
+use crate::database::{database_access, servers_db};
 
 #[derive(Debug)]
 struct Data {
@@ -59,7 +59,6 @@ async fn main() -> Result<(), Error> {
     logging::init(&cfg)?;
     info!("Logging Initialised. Initialising Dotacord application");
 
-    hero_cache::init_cache(&cfg.heroes_path).expect("Could not init hero cache");
     database_access::init_database(&cfg.database_path).await?;
     ai::init_client(&cfg.anthropic)?;
 

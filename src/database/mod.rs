@@ -2,7 +2,7 @@ pub mod chat_messages_db;
 pub mod command_events_db;
 pub mod database_access;
 pub mod entities;
-pub mod hero_cache;
+pub mod heroes_db;
 pub mod player_matches_db;
 pub mod player_servers_db;
 pub mod players_db;

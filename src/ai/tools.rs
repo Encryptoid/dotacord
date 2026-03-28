@@ -7,7 +7,7 @@ use serde::Serialize;
 use tracing::info;
 
 use crate::api::open_dota_links;
-use crate::database::{hero_cache, player_matches_db, player_servers_db};
+use crate::database::{heroes_db, player_matches_db, player_servers_db};
 use crate::Error;
 
 const MAX_TOOL_ROUNDS: usize = 5;
@@ -132,6 +132,7 @@ async fn execute_get_recent_matches(arguments: &str, ctx: &ToolContext) -> Resul
     let match_ids: std::collections::HashSet<i64> =
         sorted_matches.iter().map(|m| m.match_id).collect();
 
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
     let friends_map = build_friends_map(
         &match_ids,
         target.player_id,
@@ -144,7 +145,8 @@ async fn execute_get_recent_matches(arguments: &str, ctx: &ToolContext) -> Resul
     let summaries: Vec<MatchSummary> = sorted_matches
         .iter()
         .map(|m| {
-            let hero = hero_cache::get_hero_by_id(m.hero_id)
+            let hero = hero_lookup
+                .get_name(m.hero_id)
                 .unwrap_or("Unknown Hero")
                 .to_string();
 
@@ -286,6 +288,7 @@ async fn execute_get_match_details(arguments: &str, ctx: &ToolContext) -> Result
     }
 
     let server_players = player_servers_db::query_server_players(ctx.server_id).await?;
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
     let player_name_map: HashMap<i64, String> = server_players
         .iter()
         .map(|p| {
@@ -310,7 +313,8 @@ async fn execute_get_match_details(arguments: &str, ctx: &ToolContext) -> Result
                 .cloned()
                 .unwrap_or_else(|| format!("Player {}", m.player_id));
 
-            let hero = hero_cache::get_hero_by_id(m.hero_id)
+            let hero = hero_lookup
+                .get_name(m.hero_id)
                 .unwrap_or("Unknown Hero")
                 .to_string();
 

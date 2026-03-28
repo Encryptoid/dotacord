@@ -1,5 +1,4 @@
 database_path = "/opt/dotacord/data/dotacord.db"
-heroes_path = "/opt/dotacord/data/heroes.json"
 api_key_var = "KEY_DOTACORD"
 
 online_status = "online"

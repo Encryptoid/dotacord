@@ -2,8 +2,9 @@ use sea_orm::*;
 
 use crate::api::open_dota_api::ApiPlayerMatch;
 use crate::database::entities::{player_match, PlayerMatch};
+use crate::database::heroes_db::HeroLookup;
 use crate::database::types::{Faction, GameMode, LobbyType, MapperError};
-use crate::database::{database_access, hero_cache};
+use crate::database::{database_access};
 use crate::Error;
 
 pub use player_match::Model as PlayerMatchModel;
@@ -11,6 +12,7 @@ pub use player_match::Model as PlayerMatchModel;
 pub(crate) fn map_to_player_match(
     api_match: &ApiPlayerMatch,
     player_id: i64,
+    hero_lookup: &HeroLookup,
 ) -> Result<Option<player_match::Model>, MapperError> {
     let match_id = api_match.match_id;
     if match_id == 1439386853 {
@@ -21,7 +23,7 @@ pub(crate) fn map_to_player_match(
         _ => return Ok(None),
     };
 
-    if hero_cache::get_hero_by_id(hero_id).is_none() {
+    if !hero_lookup.contains(hero_id) {
         return Err(MapperError::UnknownHero { hero_id, match_id });
     }
 

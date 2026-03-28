@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use tracing::info;
 
-use crate::database::{command_events_db, player_matches_db, player_servers_db};
+use crate::database::{command_events_db, heroes_db, player_matches_db, player_servers_db};
 use crate::leaderboard::emoji::Emoji;
 use crate::leaderboard::section::LeaderboardSection;
 use crate::leaderboard::stats_calculator::{self, PlayerStats};
@@ -17,7 +17,8 @@ pub async fn get_leaderboard_messages(
     duration_label: &str,
 ) -> Result<Vec<String>, Error> {
     let all_stats = leaderboard_stats::get_player_stats(players, &start_utc, &end_utc).await?;
-    let sections = sections::get_leaderboard_sections(&duration_label, &all_stats);
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
+    let sections = sections::get_leaderboard_sections(&duration_label, &all_stats, &hero_lookup);
 
     let last_reload = command_events_db::query_last_event(server_id, command_events_db::EventType::AdminRefresh, None).await?;
     let last_refreshed = match last_reload {

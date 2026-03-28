@@ -9,7 +9,6 @@ use crate::util::dates;
 #[derive(Debug, Deserialize, Clone)]
 struct FileConfig {
     pub database_path: String,
-    pub heroes_path: String,
     pub api_key_var: String,
     pub test_guild: Option<u64>,
     pub test_channel: Option<u64>,
@@ -94,7 +93,6 @@ pub struct AnthropicConfig {
 #[allow(dead_code)]
 pub struct AppConfig {
     pub database_path: PathBuf,
-    pub heroes_path: PathBuf,
     pub discord_api_key: String,
     pub test_guild: Option<u64>,
     pub test_channel: Option<u64>,
@@ -141,11 +139,6 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
         return Err(format!("Database file does not exist: {}", &cfg.database_path).into());
     }
 
-    let heroes_path = expand_tilde(&cfg.heroes_path)?;
-    if !heroes_path.exists() || !heroes_path.is_file() {
-        return Err(format!("Heroes file does not exist: {}", &cfg.heroes_path).into());
-    }
-
     // let api_key = env::var(&cfg.api_key_var).map_err(|e| {
     //     fmt!(
     //         "Failed to read API key from env var {}: {}",
@@ -156,7 +149,6 @@ pub fn load_config() -> Result<AppConfig, Box<dyn std::error::Error + Send + Syn
 
     Ok(AppConfig {
         database_path,
-        heroes_path,
         discord_api_key: api_key,
         test_guild: cfg.test_guild,
         test_channel: cfg.test_channel,

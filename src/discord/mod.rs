@@ -8,6 +8,7 @@ pub(crate) mod leaderboard_command;
 mod misc_commands;
 mod register_command;
 mod reload_command;
+mod heroes_command;
 mod server_settings_command;
 
 pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>> {
@@ -17,6 +18,7 @@ pub(crate) async fn commands() -> Vec<poise::Command<crate::Data, crate::Error>>
         misc_commands::flip(),
         leaderboard_command::leaderboard(),
         register_command::register_to_leaderboard(),
+        heroes_command::heroes(),
     ];
 
     let admin_cmds: Vec<poise::Command<Data, Error>> = vec![

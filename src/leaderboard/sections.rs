@@ -1,3 +1,4 @@
+use crate::database::heroes_db::HeroLookup;
 use crate::leaderboard::section::LeaderboardSection;
 
 use super::emoji::Emoji;
@@ -7,15 +8,16 @@ use super::stats_calculator::PlayerStats;
 pub(crate) fn get_leaderboard_sections(
     duration_label: &str,
     all_stats: &[PlayerStats],
+    hero_lookup: &HeroLookup,
 ) -> Vec<Option<LeaderboardSection>> {
     vec![
         format_overall_win_rate_section(duration_label, &all_stats, false),
         format_ranked_win_rate_section(duration_label, &all_stats, false),
-        format_hero_spam_section(duration_label, &all_stats, false),
-        format_highest_kills_section(duration_label, &all_stats, true),
-        format_highest_assists_section(duration_label, &all_stats, true),
-        format_highest_deaths_section(duration_label, &all_stats, true),
-        format_longest_match_section(duration_label, &all_stats, true),
+        format_hero_spam_section(duration_label, &all_stats, false, hero_lookup),
+        format_highest_kills_section(duration_label, &all_stats, true, hero_lookup),
+        format_highest_assists_section(duration_label, &all_stats, true, hero_lookup),
+        format_highest_deaths_section(duration_label, &all_stats, true, hero_lookup),
+        format_longest_match_section(duration_label, &all_stats, true, hero_lookup),
     ]
 }
 
@@ -57,6 +59,7 @@ fn format_hero_spam_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_hero_spam_section(
         duration_label,
@@ -65,6 +68,7 @@ fn format_hero_spam_section(
         Emoji::SICK,
         "Filthiest Hero Spammer",
         include_links,
+        hero_lookup,
     )
 }
 
@@ -72,6 +76,7 @@ fn format_highest_kills_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_single_match_stat_section(
         duration_label,
@@ -82,6 +87,7 @@ fn format_highest_kills_section(
         "1v9 Miracle Child",
         "Kills",
         include_links,
+        hero_lookup,
     )
 }
 
@@ -89,6 +95,7 @@ fn format_highest_assists_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_single_match_stat_section(
         duration_label,
@@ -99,6 +106,7 @@ fn format_highest_assists_section(
         "Support Award",
         "Assists",
         include_links,
+        hero_lookup,
     )
 }
 
@@ -106,6 +114,7 @@ fn format_highest_deaths_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_single_match_stat_section(
         duration_label,
@@ -116,6 +125,7 @@ fn format_highest_deaths_section(
         "Head Chef",
         "Deaths",
         include_links,
+        hero_lookup,
     )
 }
 
@@ -123,6 +133,7 @@ fn format_longest_match_section(
     duration_label: &str,
     all_stats: &[PlayerStats],
     include_links: bool,
+    hero_lookup: &HeroLookup,
 ) -> Option<LeaderboardSection> {
     section_formatter::build_longest_match_section(
         duration_label,
@@ -132,5 +143,6 @@ fn format_longest_match_section(
         "Most Traumatised",
         "Longest Match Duration",
         include_links,
+        hero_lookup,
     )
 }

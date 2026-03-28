@@ -1,5 +1,4 @@
 database_path = "~/dev/rust/dotacord/data/dotacord.db"
-heroes_path = "~/dev/rust/dotacord/data/heroes.json"
 api_key_var = "KEY_DOTACORD"
 
 # Example: register application commands to a single guild for faster testing

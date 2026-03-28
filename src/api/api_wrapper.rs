@@ -1,7 +1,7 @@
 use tracing::info;
 
 use crate::api::open_dota_api;
-use crate::database::{database_access, player_matches_db, player_servers_db};
+use crate::database::{database_access, heroes_db, player_matches_db, player_servers_db};
 use crate::Error;
 
 pub struct ReloadPlayerStat {
@@ -64,6 +64,7 @@ async fn insert_new_matches(
     db_matches: &[player_matches_db::PlayerMatchModel],
     api_matches: &[open_dota_api::ApiPlayerMatch],
 ) -> Result<usize, Error> {
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
     let mut player_match_count = 0;
     let txn = database_access::get_transaction().await?;
 
@@ -72,7 +73,8 @@ async fn insert_new_matches(
             continue;
         }
 
-        let Some(player_match) = player_matches_db::map_to_player_match(api_match, player_id)?
+        let Some(player_match) =
+            player_matches_db::map_to_player_match(api_match, player_id, &hero_lookup)?
         else {
             continue;
         };
