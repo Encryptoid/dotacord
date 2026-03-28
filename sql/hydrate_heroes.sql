@@ -38,7 +38,7 @@ INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_su
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (39, 'Queen of Pain', 1, 0, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (40, 'Venomancer', 0, 0, 0, 1);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (41, 'Faceless Void', 1, 0, 0, 0);
-INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (42, 'Wraith King', 1, 0, 0, 1);
+INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (42, 'Wraith King', 1, 0, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (43, 'Death Prophet', 1, 0, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (44, 'Phantom Assassin', 1, 0, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (45, 'Pugna', 0, 0, 0, 1);
@@ -48,7 +48,7 @@ INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_su
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (49, 'Dragon Knight', 1, 0, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (50, 'Dazzle', 0, 0, 0, 1);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (51, 'Clockwerk', 0, 0, 0, 1);
-INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (52, 'Leshrac', 1, 0, 0, 1);
+INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (52, 'Leshrac', 0, 1, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (53, 'Nature''s Prophet', 1, 0, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (54, 'Lifestealer', 1, 0, 0, 0);
 INSERT OR IGNORE INTO heroes (hero_id, name, is_carry, is_mid, is_offlane, is_support) VALUES (55, 'Dark Seer', 1, 0, 0, 0);

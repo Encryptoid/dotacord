@@ -33,6 +33,7 @@ pub fn init_client(config: &AnthropicConfig) -> Result<(), Error> {
         .function(tools::get_match_details_tool())
         .function(tools::get_hero_by_nickname_tool())
         .function(tools::top_winrate_heroes_tool())
+        .function(tools::get_global_hero_stats_tool())
         .tool_choice(ToolChoice::Auto)
         .build()?;
 

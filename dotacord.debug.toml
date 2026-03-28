@@ -50,7 +50,7 @@ seq_endpoint = "http://localhost:5341/api/events/raw"
 [anthropic]
 api_key_var = "KEY_ANTHROPIC"
 model = "claude-haiku-4-5-20251001"
-max_tokens = 1024
+max_tokens = 256
 reasoning_budget_tokens = 1024
 max_conversation_messages = 50
 system_prompt_path = "/home/l/dev/rust/dotacord/context/dotacord.md"
