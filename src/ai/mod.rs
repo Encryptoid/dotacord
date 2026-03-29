@@ -78,6 +78,10 @@ pub fn build_client(extra_context: &str) -> Result<Box<dyn LLMProvider>, Error> 
         .function(tools::top_winrate_heroes_tool())
         .function(tools::get_global_hero_stats_tool())
         .function(tools::get_player_hero_stats_tool())
+        .function(tools::add_hero_nickname_tool())
+        .function(tools::add_hero_role_tool())
+        .function(tools::remove_hero_role_tool())
+        .function(tools::query_player_stats_tool())
         .tool_choice(ToolChoice::Auto)
         .build()?;
 

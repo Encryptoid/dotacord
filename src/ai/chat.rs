@@ -95,7 +95,10 @@ async fn build_rules_context(server_id: i64) -> Result<String, Error> {
 
     let mut output = String::from(
         "## Registered Players\n\nThese are the players registered on this Discord server. \
-         Messages from them will appear as `DisplayName: message`. Follow any rules listed under each player.\n",
+         Messages from them will appear as `@DisplayName: message`. \
+         When a user asks about themselves (e.g. \"my stats\", \"how am I doing\"), use their @DisplayName for tool calls. \
+         When they mention another player, it will appear as @OtherName in the message. \
+         Follow any rules listed under each player.\n",
     );
     for player in &players {
         let display_name = player

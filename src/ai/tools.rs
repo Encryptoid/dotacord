@@ -8,6 +8,8 @@ use tracing::info;
 
 use crate::api::{hero_stats_cache, open_dota_links};
 use crate::database::{heroes_db, player_matches_db, player_servers_db};
+use crate::leaderboard::duration::Duration;
+use crate::leaderboard::stats_calculator;
 use crate::Error;
 
 const MAX_TOOL_ROUNDS: usize = 5;
@@ -46,7 +48,7 @@ pub fn get_recent_matches_tool() -> FunctionBuilder {
         .param(
             ParamBuilder::new("username")
                 .type_of("string")
-                .description("Discord display name or Dota username of the player"),
+                .description("The player's @DisplayName from the message"),
         )
         .required(vec!["username".to_string()])
 }
@@ -95,7 +97,7 @@ pub fn get_player_hero_stats_tool() -> FunctionBuilder {
         .param(
             ParamBuilder::new("username")
                 .type_of("string")
-                .description("Discord display name or Dota username of the player"),
+                .description("The player's @DisplayName from the message"),
         )
         .param(
             ParamBuilder::new("hero_name")
@@ -120,6 +122,66 @@ pub fn get_global_hero_stats_tool() -> FunctionBuilder {
         .required(vec!["hero_name".to_string()])
 }
 
+pub fn add_hero_nickname_tool() -> FunctionBuilder {
+    FunctionBuilder::new("add_hero_nickname")
+        .description("Add a nickname for a Dota 2 hero so it can be found by that name in future lookups.")
+        .param(
+            ParamBuilder::new("hero_name")
+                .type_of("string")
+                .description("Hero name or existing nickname (e.g. 'Storm Spirit', 'Tree')"),
+        )
+        .param(
+            ParamBuilder::new("nickname")
+                .type_of("string")
+                .description("The new nickname to add for the hero"),
+        )
+        .required(vec!["hero_name".to_string(), "nickname".to_string()])
+}
+
+pub fn add_hero_role_tool() -> FunctionBuilder {
+    FunctionBuilder::new("add_hero_role")
+        .description("Add a position/role to a Dota 2 hero.")
+        .param(
+            ParamBuilder::new("hero_name")
+                .type_of("string")
+                .description("Hero name or nickname (e.g. 'Storm Spirit', 'Tree')"),
+        )
+        .param(
+            ParamBuilder::new("position")
+                .type_of("string")
+                .description("The position to add")
+                .enum_values(vec![
+                    "Carry".to_string(),
+                    "Mid".to_string(),
+                    "Offlane".to_string(),
+                    "Support".to_string(),
+                ]),
+        )
+        .required(vec!["hero_name".to_string(), "position".to_string()])
+}
+
+pub fn remove_hero_role_tool() -> FunctionBuilder {
+    FunctionBuilder::new("remove_hero_role")
+        .description("Remove a position/role from a Dota 2 hero.")
+        .param(
+            ParamBuilder::new("hero_name")
+                .type_of("string")
+                .description("Hero name or nickname (e.g. 'Storm Spirit', 'Tree')"),
+        )
+        .param(
+            ParamBuilder::new("position")
+                .type_of("string")
+                .description("The position to remove")
+                .enum_values(vec![
+                    "Carry".to_string(),
+                    "Mid".to_string(),
+                    "Offlane".to_string(),
+                    "Support".to_string(),
+                ]),
+        )
+        .required(vec!["hero_name".to_string(), "position".to_string()])
+}
+
 pub fn get_match_details_tool() -> FunctionBuilder {
     FunctionBuilder::new("get_match_details")
         .description(
@@ -134,6 +196,34 @@ pub fn get_match_details_tool() -> FunctionBuilder {
         .required(vec!["match_id".to_string()])
 }
 
+pub fn query_player_stats_tool() -> FunctionBuilder {
+    FunctionBuilder::new("query_player_stats")
+        .description(
+            "Get aggregated Dota 2 statistics for a player over a time period. \
+             Returns overall/ranked winrates, most played hero, and peak single-match stats \
+             (kills, assists, deaths, match duration) with averages and totals. \
+             Use this when a user asks about their performance, winrate, averages, or records.",
+        )
+        .param(
+            ParamBuilder::new("username")
+                .type_of("string")
+                .description("The player's @DisplayName from the message"),
+        )
+        .param(
+            ParamBuilder::new("duration")
+                .type_of("string")
+                .description("Time period to aggregate stats over")
+                .enum_values(vec![
+                    "Day".to_string(),
+                    "Week".to_string(),
+                    "Month".to_string(),
+                    "Year".to_string(),
+                    "AllTime".to_string(),
+                ]),
+        )
+        .required(vec!["username".to_string(), "duration".to_string()])
+}
+
 pub async fn execute_tool(tool_call: &ToolCall, ctx: &ToolContext) -> Result<String, Error> {
     info!(tool_name = %tool_call.function.name, arguments = %tool_call.function.arguments, "Executing tool");
 
@@ -144,6 +234,10 @@ pub async fn execute_tool(tool_call: &ToolCall, ctx: &ToolContext) -> Result<Str
         "top_winrate_heroes" => execute_top_winrate_heroes(&tool_call.function.arguments, ctx).await,
         "get_global_hero_stats" => execute_get_global_hero_stats(&tool_call.function.arguments).await,
         "get_player_hero_stats" => execute_get_player_hero_stats(&tool_call.function.arguments, ctx).await,
+        "add_hero_nickname" => execute_add_hero_nickname(&tool_call.function.arguments).await,
+        "add_hero_role" => execute_add_hero_role(&tool_call.function.arguments).await,
+        "remove_hero_role" => execute_remove_hero_role(&tool_call.function.arguments).await,
+        "query_player_stats" => execute_query_player_stats(&tool_call.function.arguments, ctx).await,
         unknown => Ok(format!("{{\"error\": \"Unknown tool: {unknown}\"}}")),
     }
 }
@@ -670,5 +764,281 @@ async fn execute_get_player_hero_stats(arguments: &str, ctx: &ToolContext) -> Re
         total_games,
         win_rate_pct,
         recent_matches,
+    })?)
+}
+
+async fn execute_add_hero_nickname(arguments: &str) -> Result<String, Error> {
+    let args: serde_json::Value = serde_json::from_str(arguments)?;
+    let hero_name = args["hero_name"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'hero_name' parameter"))?;
+    let nickname = args["nickname"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'nickname' parameter"))?;
+
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
+
+    let Some(hero) = hero_lookup.find_by_name(hero_name) else {
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!("No hero found matching '{}'.", hero_name),
+        })?);
+    };
+
+    heroes_db::insert_nickname(hero.hero_id, nickname).await?;
+
+    Ok("{\"success\": true}".to_string())
+}
+
+fn parse_position(position_str: &str) -> Result<heroes_db::Position, String> {
+    match position_str {
+        "Carry" => Ok(heroes_db::Position::Carry),
+        "Mid" => Ok(heroes_db::Position::Mid),
+        "Offlane" => Ok(heroes_db::Position::Offlane),
+        "Support" => Ok(heroes_db::Position::Support),
+        _ => Err(format!("Invalid position '{}'. Use Carry, Mid, Offlane, or Support.", position_str)),
+    }
+}
+
+async fn execute_add_hero_role(arguments: &str) -> Result<String, Error> {
+    let args: serde_json::Value = serde_json::from_str(arguments)?;
+    let hero_name = args["hero_name"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'hero_name' parameter"))?;
+    let position_str = args["position"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'position' parameter"))?;
+
+    let position = match parse_position(position_str) {
+        Ok(p) => p,
+        Err(msg) => return Ok(serde_json::to_string(&ErrorResponse { error: msg })?),
+    };
+
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
+
+    let Some(hero) = hero_lookup.find_by_name(hero_name) else {
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!("No hero found matching '{}'.", hero_name),
+        })?);
+    };
+
+    heroes_db::update_hero_position(hero.hero_id, &position, true).await?;
+
+    Ok("{\"success\": true}".to_string())
+}
+
+async fn execute_remove_hero_role(arguments: &str) -> Result<String, Error> {
+    let args: serde_json::Value = serde_json::from_str(arguments)?;
+    let hero_name = args["hero_name"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'hero_name' parameter"))?;
+    let position_str = args["position"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'position' parameter"))?;
+
+    let position = match parse_position(position_str) {
+        Ok(p) => p,
+        Err(msg) => return Ok(serde_json::to_string(&ErrorResponse { error: msg })?),
+    };
+
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
+
+    let Some(hero) = hero_lookup.find_by_name(hero_name) else {
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!("No hero found matching '{}'.", hero_name),
+        })?);
+    };
+
+    heroes_db::update_hero_position(hero.hero_id, &position, false).await?;
+
+    Ok("{\"success\": true}".to_string())
+}
+
+#[derive(Serialize)]
+struct PlayerStatsOverall {
+    total_matches: i32,
+    wins: i32,
+    winrate_pct: f64,
+    ranked_matches: i32,
+    ranked_wins: i32,
+    ranked_winrate_pct: f64,
+    most_played_hero: MostPlayedHero,
+}
+
+#[derive(Serialize)]
+struct MostPlayedHero {
+    hero: String,
+    matches: i32,
+    pick_pct: f64,
+    winrate_pct: f64,
+}
+
+#[derive(Serialize)]
+struct SingleMatchStatResponse {
+    peak: i32,
+    average: f64,
+    total: i32,
+    hero: String,
+    match_id: i64,
+    won: bool,
+}
+
+#[derive(Serialize)]
+struct LongestMatchStatResponse {
+    peak_minutes: i32,
+    average_minutes: i32,
+    total_minutes: i32,
+    hero: String,
+    match_id: i64,
+    won: bool,
+}
+
+#[derive(Serialize)]
+struct PlayerStatsSingleMatch {
+    kills: SingleMatchStatResponse,
+    assists: SingleMatchStatResponse,
+    deaths: SingleMatchStatResponse,
+    longest_match: LongestMatchStatResponse,
+}
+
+#[derive(Serialize)]
+struct PlayerStatsResponse {
+    player_name: String,
+    duration: String,
+    overall: PlayerStatsOverall,
+    single_match: PlayerStatsSingleMatch,
+}
+
+fn parse_duration(duration_str: &str) -> Result<Duration, String> {
+    match duration_str {
+        "Day" => Ok(Duration::Day),
+        "Week" => Ok(Duration::Week),
+        "Month" => Ok(Duration::Month),
+        "Year" => Ok(Duration::Year),
+        "AllTime" => Ok(Duration::AllTime),
+        _ => Err(format!(
+            "Invalid duration '{}'. Use Day, Week, Month, Year, or AllTime.",
+            duration_str
+        )),
+    }
+}
+
+fn calc_winrate_pct(wins: i32, total: i32) -> f64 {
+    if total > 0 {
+        ((wins as f64 / total as f64) * 1000.0).round() / 10.0
+    } else {
+        0.0
+    }
+}
+
+async fn execute_query_player_stats(arguments: &str, ctx: &ToolContext) -> Result<String, Error> {
+    let args: serde_json::Value = serde_json::from_str(arguments)?;
+    let username = args["username"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'username' parameter"))?;
+    let duration_str = args["duration"]
+        .as_str()
+        .ok_or_else(|| Error::from("Missing 'duration' parameter"))?;
+
+    let duration = match parse_duration(duration_str) {
+        Ok(d) => d,
+        Err(msg) => return Ok(serde_json::to_string(&ErrorResponse { error: msg })?),
+    };
+
+    let server_players = player_servers_db::query_server_players(ctx.server_id).await?;
+
+    let target = find_player_by_name(username, &server_players);
+    let Some(target) = target else {
+        let available: Vec<&str> = server_players.iter().map(|p| p.discord_name.as_str()).collect();
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!(
+                "Player '{}' not found in this server. Available players: {}",
+                username,
+                available.join(", ")
+            ),
+        })?);
+    };
+
+    let display_name = target
+        .player_name
+        .clone()
+        .unwrap_or_else(|| target.discord_name.clone());
+
+    let now = Utc::now();
+    let start = duration.start_date(now);
+    let start_ts = start.timestamp() as i32;
+    let end_ts = now.timestamp() as i32;
+
+    let matches = player_matches_db::query_matches_by_duration(target.player_id, start_ts, end_ts).await?;
+
+    if matches.is_empty() {
+        return Ok(serde_json::to_string(&ErrorResponse {
+            error: format!(
+                "No matches found for '{}' in the {} period.",
+                display_name,
+                duration.to_label()
+            ),
+        })?);
+    }
+
+    let stats = stats_calculator::player_matches_to_stats(
+        &matches,
+        target.player_id,
+        display_name.clone(),
+    )?;
+
+    let hero_lookup = heroes_db::HeroLookup::load().await?;
+
+    let hero_name = |id: i32| -> String {
+        hero_lookup.get_name(id).unwrap_or("Unknown Hero").to_string()
+    };
+
+    let most_played = &stats.hero_pick_stat;
+    let pick_pct = calc_winrate_pct(most_played.stats.total_matches, stats.overall_stats.total_matches);
+
+    let overall = PlayerStatsOverall {
+        total_matches: stats.overall_stats.total_matches,
+        wins: stats.overall_stats.wins,
+        winrate_pct: calc_winrate_pct(stats.overall_stats.wins, stats.overall_stats.total_matches),
+        ranked_matches: stats.ranked_stats.total_matches,
+        ranked_wins: stats.ranked_stats.wins,
+        ranked_winrate_pct: calc_winrate_pct(stats.ranked_stats.wins, stats.ranked_stats.total_matches),
+        most_played_hero: MostPlayedHero {
+            hero: hero_name(most_played.hero_id),
+            matches: most_played.stats.total_matches,
+            pick_pct,
+            winrate_pct: calc_winrate_pct(most_played.stats.wins, most_played.stats.total_matches),
+        },
+    };
+
+    let build_stat = |stat: &stats_calculator::SingleMatchStat| -> SingleMatchStatResponse {
+        SingleMatchStatResponse {
+            peak: stat.value,
+            average: (stat.average as f64 * 100.0).round() / 100.0,
+            total: stat.total,
+            hero: hero_name(stat.hero_id),
+            match_id: stat.match_id,
+            won: stat.is_victory,
+        }
+    };
+
+    let single_match = PlayerStatsSingleMatch {
+        kills: build_stat(&stats.most_kills_stat),
+        assists: build_stat(&stats.most_assists_stat),
+        deaths: build_stat(&stats.most_deaths_stat),
+        longest_match: LongestMatchStatResponse {
+            peak_minutes: stats.longest_match_stat.value / 60,
+            average_minutes: stats.longest_match_stat.average as i32 / 60,
+            total_minutes: stats.longest_match_stat.total / 60,
+            hero: hero_name(stats.longest_match_stat.hero_id),
+            match_id: stats.longest_match_stat.match_id,
+            won: stats.longest_match_stat.is_victory,
+        },
+    };
+
+    Ok(serde_json::to_string(&PlayerStatsResponse {
+        player_name: display_name,
+        duration: duration.to_label().to_string(),
+        overall,
+        single_match,
     })?)
 }

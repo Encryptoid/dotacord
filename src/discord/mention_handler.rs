@@ -26,12 +26,13 @@ impl serenity::EventHandler for MentionHandler {
             }
 
             let display_name = resolve_display_name(new_message).await;
-            let text = strip_mentions(&new_message.content);
+            let server_id = new_message.guild_id.map(|g| g.get() as i64).unwrap_or(0);
+            let text = resolve_mentions(&new_message.content, server_id).await;
             if text.is_empty() {
                 return;
             }
 
-            let user_text = format!("{display_name}: {text}");
+            let user_text = format!("@{display_name}: {text}");
             tracing::info!(user = %new_message.author.name, display_name = %display_name, content = %new_message.content, "Received AI chat message");
 
             match replied_to {
@@ -207,11 +208,30 @@ async fn resolve_display_name(message: &serenity::Message) -> String {
     message.author.display_name().to_string()
 }
 
-fn strip_mentions(content: &str) -> String {
+async fn resolve_mentions(content: &str, server_id: i64) -> String {
     let mut result = content.to_string();
     while let Some(start) = result.find("<@") {
         if let Some(end) = result[start..].find('>') {
-            result = format!("{}{}", &result[..start], &result[start + end + 1..]);
+            let mention = &result[start..start + end + 1];
+            let id_str = mention
+                .trim_start_matches("<@")
+                .trim_start_matches('!')
+                .trim_end_matches('>');
+
+            let replacement = if let Ok(user_id) = id_str.parse::<i64>() {
+                if let Ok(Some(player)) =
+                    player_servers_db::query_player_by_discord_user(server_id, user_id).await
+                {
+                    let name = player.player_name.unwrap_or(player.discord_name);
+                    format!("@{name}")
+                } else {
+                    String::new()
+                }
+            } else {
+                String::new()
+            };
+
+            result = format!("{}{}{}", &result[..start], replacement, &result[start + end + 1..]);
         } else {
             break;
         }

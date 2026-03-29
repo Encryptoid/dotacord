@@ -12,7 +12,7 @@ Builds dotacord locally, creates a GitHub release, and deploys the binary to the
 ## Process
 
 1. Ask the user for a **version tag** (e.g. `v1.0.0`). Suggest the next version based on `gh release list --limit 1` if available.
-2. Optionally ask for release notes (one-liner is fine, default to empty).
+2. Generate release notes from the commit log between the last tag and HEAD: `git log <last-tag>..HEAD --oneline`. Summarize into a concise bullet list. Show the user for confirmation.
 3. Run the deploy script:
    ```
    pwsh ${CLAUDE_SKILL_DIR}/scripts/deploy.ps1 -Tag <tag> -Notes "<notes>"
