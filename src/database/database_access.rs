@@ -3,7 +3,8 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use sea_orm::{
-    ConnectOptions, Database, DatabaseConnection, DatabaseTransaction, TransactionTrait,
+    ConnectionTrait, ConnectOptions, Database, DatabaseConnection, DatabaseTransaction,
+    TransactionTrait,
 };
 use tracing::info;
 
@@ -21,6 +22,8 @@ pub async fn init_database(path: &Path) -> Result<(), Error> {
         .acquire_timeout(Duration::from_secs(60));
 
     let conn = Database::connect(opt).await?;
+
+    conn.execute_unprepared("PRAGMA journal_mode=WAL").await?;
 
     SEA_ORM_CONNECTION.set(conn).map_err(|_already| {
         Box::new(std::io::Error::new(
