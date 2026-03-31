@@ -45,7 +45,6 @@ minute = 7
 level = "info"
 path = "~/dev/rust/dotacord/data/dotacord.log"
 json_path = "~/dev/rust/dotacord/data/dotacord.json.log"
-seq_endpoint = "http://localhost:5341/api/events/raw"
 
 [anthropic]
 api_key_var = "KEY_ANTHROPIC"
